@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CorteX · Monitoring Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101010; --panel:#151513; --ink:#EDEAE4; --ink2:#A9A49B; --muted:#6E6A63;
+    --accent:#D96C3B; --line:#2A2925;
+    /* validated categorical (dark surface #101010, all-pairs PASS) */
+    --c1:#d95926; --c2:#3987e5; --c3:#199e70;
+    /* status (fixed, never themed) */
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    /* sequential blue ramp, low=near surface -> high=luminous */
+    --s1:#0d366b; --s2:#184f95; --s3:#256abf; --s4:#3987e5; --s5:#6da7ec; --s6:#9ec5f4; --s7:#cde2fb;
+  }
+  *{margin:0; padding:0; box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink); font-family:Inter,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:0 0 60px;
+  }
+  .serif{font-family:Fraunces,Georgia,serif; font-weight:400; letter-spacing:-.01em}
+  a{color:var(--accent)}
+
+  /* ---- top bar ---- */
+  .top{
+    position:sticky; top:0; z-index:20; background:rgba(16,16,16,.94);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+    padding:16px 28px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+  }
+  .top .brand{font-family:Fraunces,Georgia,serif; font-size:19px; letter-spacing:-.01em}
+  .top .brand span{color:var(--accent)}
+  .top .sub{font-size:12px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase}
+  .spacer{flex:1}
+  .ctl{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink2)}
+  select, .btn{
+    background:#1b1b18; color:var(--ink); border:1px solid var(--line); border-radius:6px;
+    padding:7px 11px; font-size:13px; font-family:inherit; cursor:pointer;
+  }
+  select:focus, .btn:focus{outline:2px solid var(--accent); outline-offset:1px}
+  .live{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink2);
+        letter-spacing:.1em; text-transform:uppercase}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .demo-badge{
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#101010;
+    background:var(--warn); padding:4px 9px; border-radius:4px; font-weight:600;
+  }
+
+  /* ---- layout ---- */
+  .wrap{padding:26px 28px; max-width:1680px; margin:0 auto}
+  .grid{display:grid; gap:16px; margin-bottom:16px}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g23{grid-template-columns:2fr 1fr}
+  .g32{grid-template-columns:1fr 2fr}
+  @media (max-width:1250px){ .g5,.g4,.g3,.g2,.g23,.g32{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:760px){ .g5,.g4,.g3,.g2,.g23,.g32{grid-template-columns:1fr} }
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 18px 16px}
+  .card h3{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);
+           font-weight:600; margin-bottom:3px}
+  .card .note{font-size:11.5px; color:var(--muted); margin-bottom:14px}
+  .sec{font-family:Fraunces,Georgia,serif; font-size:15px; color:var(--ink2);
+       margin:26px 0 12px; letter-spacing:.02em}
+  .sec:first-of-type{margin-top:6px}
+
+  /* ---- stat tiles ---- */
+  .stat .n{font-family:Fraunces,Georgia,serif; font-size:34px; line-height:1.05; letter-spacing:-.02em}
+  .stat .d{margin-top:7px; font-size:12.5px; color:var(--ink2); line-height:1.45}
+  .stat .delta{margin-top:9px; font-size:11.5px; display:flex; align-items:center; gap:5px}
+  .up{color:var(--good)} .down{color:var(--critical)} .flat{color:var(--muted)}
+
+  /* ---- charts ---- */
+  svg{display:block; overflow:visible}
+  .axis{font-size:10.5px; fill:var(--muted)}
+  .vlabel{font-size:11px; fill:var(--ink2)}
+  .dlabel{font-size:11px; fill:var(--ink); font-weight:500}
+  .grid-line{stroke:var(--line); stroke-width:1}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; font-size:11.5px; color:var(--ink2)}
+  .legend i{width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:6px;
+            vertical-align:-1px}
+  .bar{transition:opacity .15s} .bar:hover{opacity:.75; cursor:default}
+  .cell{transition:stroke .12s} .cell:hover{stroke:var(--ink); stroke-width:1.5; cursor:default}
+
+  /* tooltip */
+  #tip{
+    position:fixed; z-index:60; pointer-events:none; opacity:0; transition:opacity .12s;
+    background:#000; border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+    font-size:12px; color:var(--ink); box-shadow:0 8px 30px rgba(0,0,0,.6); max-width:260px;
+  }
+  #tip b{color:var(--accent); font-weight:600}
+
+  /* status rows */
+  .srow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);
+        font-size:13px}
+  .srow:last-child{border-bottom:none}
+  .srow .ico{width:16px; text-align:center; font-size:12px}
+  .srow .lbl{flex:1; color:var(--ink2)}
+  .srow .val{font-variant-numeric:tabular-nums; font-weight:500}
+
+  /* ticker */
+  .ticker{height:238px; overflow:hidden; position:relative}
+  .ticker ul{list-style:none}
+  .ticker li{
+    display:flex; gap:10px; align-items:baseline; padding:8px 0; font-size:12.5px;
+    border-bottom:1px solid var(--line); animation:slidein .4s ease;
+  }
+  @keyframes slidein{from{opacity:0; transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .ticker .t{color:var(--muted); font-variant-numeric:tabular-nums; font-size:11.5px; min-width:52px}
+  .ticker .r{color:var(--accent); min-width:72px; font-size:11.5px}
+  .ticker .e{color:var(--ink2); flex:1}
+
+  /* tables (a11y) */
+  table{width:100%; border-collapse:collapse; font-size:12px; margin-top:12px}
+  th,td{text-align:left; padding:6px 8px; border-bottom:1px solid var(--line)}
+  th{color:var(--muted); font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase}
+  td{color:var(--ink2); font-variant-numeric:tabular-nums}
+  .tv{display:none} body.tables .tv{display:block}
+
+  .foot{padding:22px 28px 0; color:var(--muted); font-size:11.5px; line-height:1.7; max-width:1680px;
+        margin:0 auto; border-top:1px solid var(--line)}
+  .proposed{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--warn);
+            border:1px solid var(--warn); border-radius:3px; padding:1px 5px; margin-left:8px;
+            vertical-align:2px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <div class="brand">Corte<span>X</span></div>
+    <div class="sub">Monitoring dashboard</div>
+  </div>
+  <span class="demo-badge">Simulated data</span>
+  <div class="spacer"></div>
+  <div class="ctl"><label for="fRegion">Region</label><select id="fRegion"></select></div>
+  <div class="ctl"><label for="fAgency">Agency</label><select id="fAgency"></select></div>
+  <div class="ctl"><label for="fRange">Range</label>
+    <select id="fRange">
+      <option>Last 7 days</option><option selected>Last 30 days</option>
+      <option>Last 90 days</option><option>Year to date</option>
+    </select>
+  </div>
+  <button class="btn" id="tablesBtn" aria-pressed="false">Data tables</button>
+  <div class="live"><span class="dot"></span><span id="liveLbl">Live</span></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ 1. VOLUME & REACH ============ -->
+  <div class="sec">1 · Volume and reach</div>
+  <div class="grid g5" id="kpis"></div>
+
+  <div class="grid g23">
+    <div class="card">
+      <h3>Inquiries by region</h3>
+      <div class="note">Citizen-facing conversations, current range. Hover a bar for detail.</div>
+      <div id="chRegion"></div>
+      <div class="tv" id="tbRegion"></div>
+    </div>
+    <div class="card">
+      <h3>Popular topics</h3>
+      <div class="note">Share of all inquiries</div>
+      <div id="chTopics"></div>
+      <div class="tv" id="tbTopics"></div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Trending topics</h3>
+      <div class="note">Fastest growing week over week. Bars show this week against last.</div>
+      <div class="legend">
+        <span><i style="background:var(--c1)"></i>This week</span>
+        <span><i style="background:var(--c2)"></i>Last week</span>
+      </div>
+      <div id="chTrend"></div>
+      <div class="tv" id="tbTrend"></div>
+    </div>
+    <div class="card">
+      <h3>Volume by agency</h3>
+      <div class="note">Each agency sees only its own rows in production. This view is the ministry-wide roll-up.</div>
+      <div id="chAgency"></div>
+      <div class="tv" id="tbAgency"></div>
+    </div>
+  </div>
+
+  <!-- ============ 2. RESPONSE SPEED ============ -->
+  <div class="sec">2 · Response speed</div>
+  <div class="grid g3">
+    <div class="card">
+      <h3>AI response speed</h3>
+      <div class="note">Seconds to first answer, by day</div>
+      <div id="chAiSpeed"></div>
+      <div class="tv" id="tbAiSpeed"></div>
+    </div>
+    <div class="card">
+      <h3>Official response speed</h3>
+      <div class="note">Hours to human reply on escalated cases, by day. Separate scale from the AI chart on purpose.</div>
+      <div id="chHumanSpeed"></div>
+      <div class="tv" id="tbHumanSpeed"></div>
+    </div>
+    <div class="card">
+      <h3>Escalation queue depth</h3>
+      <div class="note">Cases waiting for an operator right now</div>
+      <div id="chQueue"></div>
+      <div class="tv" id="tbQueue"></div>
+    </div>
+  </div>
+
+  <!-- ============ 3. LIVE ============ -->
+  <div class="sec">3 · Live activity</div>
+  <div class="grid g32">
+    <div class="card">
+      <h3>Activity ticker</h3>
+      <div class="note">Anonymised events as they happen</div>
+      <div class="ticker"><ul id="ticker"></ul></div>
+    </div>
+    <div class="card">
+      <h3>Demand by hour and weekday</h3>
+      <div class="note">Darker means quieter, brighter means busier. Hover a cell for the exact count.</div>
+      <div id="chHeat"></div>
+      <div class="tv" id="tbHeat"></div>
+    </div>
+  </div>
+
+  <!-- ============ 4. DATA COMPLETENESS ============ -->
+  <div class="sec">4 · Data completeness</div>
+  <div class="grid g3">
+    <div class="card">
+      <h3>Overall completeness</h3>
+      <div class="note">Share of answerable questions the knowledge base can currently ground</div>
+      <div id="chDonut"></div>
+    </div>
+    <div class="card">
+      <h3>Missing data categories</h3>
+      <div class="note">Percentage of records missing, by category</div>
+      <div id="chMissing"></div>
+      <div class="tv" id="tbMissing"></div>
+    </div>
+    <div class="card">
+      <h3>Regional gap ranking</h3>
+      <div class="note">Completeness by region, worst first. These are the content gaps to close next.</div>
+      <div id="chGap"></div>
+      <div class="tv" id="tbGap"></div>
+    </div>
+  </div>
+
+  <!-- ============ 5. RELIABILITY ============ -->
+  <div class="sec">5 · Reliability and performance</div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Service health</h3>
+      <div class="note">Rolling 30 days</div>
+      <div id="health"></div>
+    </div>
+    <div class="card">
+      <h3>Anomaly detector <span class="proposed">Proposed</span></h3>
+      <div class="note">Deviations from the four-week baseline, ranked by severity</div>
+      <div id="anomalies"></div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Service quality index <span class="proposed">Proposed</span></h3>
+      <div class="note">Composite of task success, response speed, citizen rating and content completeness</div>
+      <div id="sqi"></div>
+    </div>
+    <div class="card">
+      <h3>Citizen rating</h3>
+      <div class="note">Post-completion rating, current range</div>
+      <div id="chRating"></div>
+      <div class="tv" id="tbRating"></div>
+    </div>
+  </div>
+
+  <!-- ============ 6. DEMOGRAPHICS + USERS ============ -->
+  <div class="sec">6 · Demographics and active users</div>
+  <div class="grid g3">
+    <div class="card">
+      <h3>Age band</h3>
+      <div class="note">Aggregated only. No individual profile is stored or displayed.</div>
+      <div id="chAge"></div>
+      <div class="tv" id="tbAge"></div>
+    </div>
+    <div class="card">
+      <h3>Gender</h3>
+      <div class="note">Aggregated only. No individual profile is stored or displayed.</div>
+      <div id="chGender"></div>
+      <div class="tv" id="tbGender"></div>
+    </div>
+    <div class="card">
+      <h3>Active users</h3>
+      <div class="note">Unique citizens reached</div>
+      <div id="users"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  <strong style="color:var(--ink2)">All figures on this page are simulated demo data</strong> for prototype review. They follow the metric list in the CortexAI monitoring dashboard specification and are shaped to be plausible for the Kyrgyz Republic, but no production traffic is represented.
+  <br>Demographics are aggregate-only by design: the platform never displays or exports an individual citizen profile. Agency views are scoped, so an agency sees only the rows belonging to its own services.
+  <br>Palette validated for dark-surface contrast and colour-vision deficiency separation. Every chart has a matching data table under the “Data tables” toggle.
+</div>
+
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------------------------------------------------------- simulated data
+  const REGIONS = [
+    ["Bishkek",28400,92],["Chuy",15800,84],["Osh city",11200,88],["Jalal-Abad",12100,76],
+    ["Osh oblast",9600,77],["Ysyk-Kol",6400,72],["Batken",5200,66],["Naryn",3100,61],["Talas",2900,64]
+  ];
+  const TOPICS = [
+    ["Pension",22300],["Tax deductions",18900],["OSAGO",14200],["Passport and ID",11600],
+    ["Social benefits",9800],["Business registration",7100],["Utilities",5400],
+    ["Education",3600],["Healthcare",1800]
+  ];
+  const TREND = [
+    ["OSAGO",4820,3490],["Tax deductions",6310,5090],["Utilities",1840,1546],
+    ["Pension",7420,7000],["Passport and ID",3560,3670]
+  ];
+  const AGENCIES = [
+    ["Social Fund",24100],["State Tax Service",21300],["Ministry of Internal Affairs",15400],
+    ["Public Service Centres",18900],["Financial Supervision Agency",14000]
+  ];
+  const MISSING = [
+    ["Kyrgyz-language content",55],["Regional office hours",42],["Fee schedules",31],
+    ["Form templates",24],["Contact numbers",12]
+  ];
+  const AGE = [["18-24",12],["25-34",27],["35-44",24],["45-54",18],["55-64",12],["65+",7]];
+  const GENDER = [["Women",54],["Men",46]];
+  const RATING = [["5 stars",58],["4 stars",24],["3 stars",11],["2 stars",4],["1 star",3]];
+  const AI_SPEED = [2.6,2.4,2.5,2.3,2.2,2.4,2.7,2.5,2.3,2.2,2.1,2.4,2.6,2.3];
+  const HUMAN_SPEED = [5.1,4.6,4.9,4.2,3.8,4.4,6.2,5.4,4.1,3.9,4.0,4.3,5.8,4.2];
+  const QUEUE = [21,26,24,31,28,34,41,38,29,25,27,30,36,34];
+  const ANOMALIES = [
+    ["critical","OSAGO inquiries in Batken up 180% against the four-week baseline","Started 2 days ago"],
+    ["warning","Response time p90 in Naryn at 8.9s, 2.1x the national median","Since yesterday"],
+    ["warning","Unanswered-question rate for Kyrgyz-language queries at 14%","Persistent"],
+    ["good","Escalation rate down to 6.4% from 9.1% last month","Improving"]
+  ];
+
+  const $ = s => document.querySelector(s);
+  const fmt = n => n.toLocaleString("en-US");
+  const S = getComputedStyle(document.documentElement);
+  const col = n => S.getPropertyValue(n).trim();
+  const SEQ = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7"].map(col);
+
+  // ---------------------------------------------------------------- tooltip
+  const tip = $("#tip");
+  function bindTip(el, html){
+    el.addEventListener("mousemove", e => {
+      tip.innerHTML = html;
+      tip.style.opacity = 1;
+      const r = tip.getBoundingClientRect();
+      let x = e.clientX + 14, y = e.clientY - 10;
+      if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+      if (y + r.height > innerHeight - 8) y = innerHeight - r.height - 8;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    el.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+  }
+
+  const svgEl = (tag, attrs) => {
+    const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+
+  function table(host, headers, rows){
+    const t = document.createElement("table");
+    t.innerHTML = "<thead><tr>" + headers.map(h => "<th>" + h + "</th>").join("") + "</tr></thead>"
+      + "<tbody>" + rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("") + "</tr>").join("") + "</tbody>";
+    host.innerHTML = ""; host.appendChild(t);
+  }
+
+  // ---------------------------------------------------------------- horizontal bars
+  function hbars(host, data, opts){
+    opts = opts || {};
+    const W = host.clientWidth || 460, rowH = opts.rowH || 30, padL = opts.padL || 132;
+    const H = data.length * rowH + 8;
+    const max = Math.max.apply(null, data.map(d => d[1]));
+    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                              preserveAspectRatio:"none", role:"img"});
+    data.forEach((d, i) => {
+      const y = i * rowH + 4, bw = Math.max(2, (d[1] / max) * (W - padL - 62));
+      const lab = svgEl("text", {x:0, y:y + 13, class:"vlabel"});
+      lab.textContent = d[0]; svg.appendChild(lab);
+      const bar = svgEl("rect", {x:padL, y:y + 2, width:bw, height:13, rx:3,
+                                 fill:opts.color || col("--c1"), class:"bar"});
+      svg.appendChild(bar);
+      const v = svgEl("text", {x:padL + bw + 8, y:y + 13, class:"dlabel"});
+      v.textContent = opts.fmtVal ? opts.fmtVal(d[1]) : fmt(d[1]);
+      svg.appendChild(v);
+      bindTip(bar, "<b>" + d[0] + "</b><br>" + (opts.tipVal ? opts.tipVal(d) : fmt(d[1]) + " inquiries"));
+    });
+    host.innerHTML = ""; host.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- grouped bars (2 series)
+  function gbars(host, data){
+    const W = host.clientWidth || 460, rowH = 42, padL = 132;
+    const H = data.length * rowH + 8;
+    const max = Math.max.apply(null, data.map(d => Math.max(d[1], d[2])));
+    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                              preserveAspectRatio:"none", role:"img"});
+    data.forEach((d, i) => {
+      const y = i * rowH + 6;
+      const lab = svgEl("text", {x:0, y:y + 15, class:"vlabel"});
+      lab.textContent = d[0]; svg.appendChild(lab);
+      [[d[1], col("--c1"), 0], [d[2], col("--c2"), 15]].forEach(([v, c, off]) => {
+        const bw = Math.max(2, (v / max) * (W - padL - 78));
+        const bar = svgEl("rect", {x:padL, y:y + off, width:bw, height:13, rx:3, fill:c, class:"bar"});
+        svg.appendChild(bar);
+        bindTip(bar, "<b>" + d[0] + "</b><br>" + fmt(v) + (off ? " last week" : " this week"));
+      });
+      const pct = ((d[1] - d[2]) / d[2]) * 100;
+      const t = svgEl("text", {x:W - 4, y:y + 18, class:"dlabel", "text-anchor":"end",
+                               fill:pct >= 0 ? col("--good") : col("--critical")});
+      t.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%";
+      svg.appendChild(t);
+    });
+    host.innerHTML = ""; host.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- line
+  function line(host, series, opts){
+    opts = opts || {};
+    const W = host.clientWidth || 300, H = 150, padL = 34, padB = 20, padT = 10;
+    const max = Math.max.apply(null, series) * 1.15, min = 0;
+    const x = i => padL + (i / (series.length - 1)) * (W - padL - 8);
+    const y = v => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
+    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                              preserveAspectRatio:"none", role:"img"});
+    [0, 0.5, 1].forEach(f => {
+      const yy = padT + f * (H - padT - padB);
+      svg.appendChild(svgEl("line", {x1:padL, x2:W - 8, y1:yy, y2:yy, class:"grid-line"}));
+      const t = svgEl("text", {x:0, y:yy + 3, class:"axis"});
+      t.textContent = (max * (1 - f)).toFixed(1); svg.appendChild(t);
+    });
+    let d = "";
+    series.forEach((v, i) => { d += (i ? " L" : "M") + x(i) + " " + y(v); });
+    svg.appendChild(svgEl("path", {d:d, fill:"none", stroke:opts.color || col("--c1"), "stroke-width":2,
+                                   "stroke-linejoin":"round", "stroke-linecap":"round"}));
+    series.forEach((v, i) => {
+      const c = svgEl("circle", {cx:x(i), cy:y(v), r:i === series.length - 1 ? 4 : 3,
+                                 fill:opts.color || col("--c1"), stroke:col("--panel"), "stroke-width":2});
+      svg.appendChild(c);
+      const hit = svgEl("circle", {cx:x(i), cy:y(v), r:11, fill:"transparent"});
+      svg.appendChild(hit);
+      bindTip(hit, "<b>Day " + (i + 1) + "</b><br>" + v + " " + (opts.unit || ""));
+    });
+    const last = svgEl("text", {x:x(series.length - 1), y:y(series[series.length - 1]) - 11,
+                                class:"dlabel", "text-anchor":"end"});
+    last.textContent = series[series.length - 1] + (opts.unitShort || "");
+    svg.appendChild(last);
+    host.innerHTML = ""; host.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- heatmap
+  function heat(host){
+    const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const W = host.clientWidth || 460, padL = 34, padT = 16;
+    const cw = (W - padL - 6) / 24, ch = 20, H = days.length * ch + padT + 16;
+    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                              preserveAspectRatio:"none", role:"img"});
+    for (let h = 0; h < 24; h += 3){
+      const t = svgEl("text", {x:padL + h * cw, y:10, class:"axis"});
+      t.textContent = h + ":00"; svg.appendChild(t);
+    }
+    days.forEach((dn, di) => {
+      const t = svgEl("text", {x:0, y:padT + di * ch + 14, class:"axis"});
+      t.textContent = dn; svg.appendChild(t);
+      for (let h = 0; h < 24; h++){
+        const weekend = di > 4;
+        let base = Math.exp(-Math.pow(h - 11, 2) / 26) + 0.85 * Math.exp(-Math.pow(h - 16, 2) / 18);
+        if (weekend) base *= 0.42;
+        if (h < 7) base *= 0.15;
+        const noise = ((di * 31 + h * 17) % 11) / 100;
+        const v = Math.min(1, base + noise);
+        const idx = Math.min(SEQ.length - 1, Math.floor(v * SEQ.length));
+        const cell = svgEl("rect", {x:padL + h * cw, y:padT + di * ch + 2, width:cw - 2, height:ch - 4,
+                                    rx:2, fill:SEQ[idx], class:"cell"});
+        svg.appendChild(cell);
+        bindTip(cell, "<b>" + dn + " " + h + ":00</b><br>" + Math.round(v * 640) + " inquiries");
+      }
+    });
+    host.innerHTML = ""; host.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- donut
+  function donut(host, pct){
+    const size = 190, r = 66, cx = size / 2, cy = size / 2 + 4, C = 2 * Math.PI * r;
+    const svg = svgEl("svg", {width:"100%", height:size, viewBox:"0 0 " + size + " " + size, role:"img"});
+    svg.appendChild(svgEl("circle", {cx:cx, cy:cy, r:r, fill:"none", stroke:col("--line"), "stroke-width":15}));
+    svg.appendChild(svgEl("circle", {cx:cx, cy:cy, r:r, fill:"none", stroke:col("--c1"), "stroke-width":15,
+      "stroke-dasharray":(C * pct / 100) + " " + C, "stroke-linecap":"round",
+      transform:"rotate(-90 " + cx + " " + cy + ")"}));
+    const n = svgEl("text", {x:cx, y:cy + 4, "text-anchor":"middle",
+                             style:"font-family:Fraunces,Georgia,serif;font-size:32px;fill:" + col("--ink")});
+    n.textContent = pct + "%"; svg.appendChild(n);
+    const l = svgEl("text", {x:cx, y:cy + 24, "text-anchor":"middle", class:"axis"});
+    l.textContent = "grounded"; svg.appendChild(l);
+    host.innerHTML = ""; host.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- status rows
+  function statusRows(host, rows){
+    host.innerHTML = rows.map(r =>
+      '<div class="srow"><span class="ico" style="color:' + r.color + '">' + r.icon + '</span>'
+      + '<span class="lbl">' + r.label + '</span><span class="val" style="color:' + r.color + '">'
+      + r.value + '</span></div>').join("");
+  }
+
+  // ---------------------------------------------------------------- render
+  function kpis(){
+    const items = [
+      ["94,700","Total inquiries","+12.4% vs previous 30 days","up"],
+      ["41,240","Unique citizens reached","+8.1%","up"],
+      ["91.3%","Task success rate","+2.2 pts","up"],
+      ["2.4s","Median AI response","-0.3s","up"],
+      ["6.4%","Escalated to a human","-2.7 pts","up"]
+    ];
+    $("#kpis").innerHTML = items.map(i =>
+      '<div class="card stat"><div class="n serif">' + i[0] + '</div><div class="d">' + i[1] + '</div>'
+      + '<div class="delta ' + i[3] + '">' + (i[3] === "up" ? "▲" : "▼") + " " + i[2] + '</div></div>').join("");
+  }
+
+  function drawAll(){
+    kpis();
+    const byVol = REGIONS.slice().sort((a, b) => b[1] - a[1]);
+    hbars($("#chRegion"), byVol.map(r => [r[0], r[1]]));
+    table($("#tbRegion"), ["Region","Inquiries","Completeness"], byVol.map(r => [r[0], fmt(r[1]), r[2] + "%"]));
+
+    const total = TOPICS.reduce((a, t) => a + t[1], 0);
+    hbars($("#chTopics"), TOPICS, {padL:124, fmtVal:v => ((v / total) * 100).toFixed(1) + "%",
+      tipVal:d => fmt(d[1]) + " inquiries (" + ((d[1] / total) * 100).toFixed(1) + "%)"});
+    table($("#tbTopics"), ["Topic","Inquiries","Share"],
+      TOPICS.map(t => [t[0], fmt(t[1]), ((t[1] / total) * 100).toFixed(1) + "%"]));
+
+    gbars($("#chTrend"), TREND);
+    table($("#tbTrend"), ["Topic","This week","Last week","Change"],
+      TREND.map(t => [t[0], fmt(t[1]), fmt(t[2]), (((t[1] - t[2]) / t[2]) * 100).toFixed(0) + "%"]));
+
+    hbars($("#chAgency"), AGENCIES, {padL:186, color:col("--c3")});
+    table($("#tbAgency"), ["Agency","Inquiries"], AGENCIES.map(a => [a[0], fmt(a[1])]));
+
+    line($("#chAiSpeed"), AI_SPEED, {unit:"seconds", unitShort:"s"});
+    table($("#tbAiSpeed"), ["Day","Seconds"], AI_SPEED.map((v, i) => ["Day " + (i + 1), v]));
+    line($("#chHumanSpeed"), HUMAN_SPEED, {color:col("--c2"), unit:"hours", unitShort:"h"});
+    table($("#tbHumanSpeed"), ["Day","Hours"], HUMAN_SPEED.map((v, i) => ["Day " + (i + 1), v]));
+    line($("#chQueue"), QUEUE, {color:col("--c3"), unit:"cases waiting", unitShort:""});
+    table($("#tbQueue"), ["Day","Cases"], QUEUE.map((v, i) => ["Day " + (i + 1), v]));
+
+    heat($("#chHeat"));
+    $("#tbHeat").innerHTML = "<table><thead><tr><th>Note</th></tr></thead><tbody><tr><td>"
+      + "Peak demand falls on weekday mornings (10:00 to 12:00) and late afternoons (15:00 to 17:00). "
+      + "Weekend volume runs at roughly 42% of weekday volume.</td></tr></tbody></table>";
+
+    donut($("#chDonut"), 78);
+    hbars($("#chMissing"), MISSING, {padL:158, color:col("--warn"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of records missing"});
+    table($("#tbMissing"), ["Category","Missing"], MISSING.map(m => [m[0], m[1] + "%"]));
+
+    const gap = REGIONS.slice().sort((a, b) => a[2] - b[2]).map(r => [r[0], r[2]]);
+    hbars($("#chGap"), gap, {color:col("--c2"), fmtVal:v => v + "%", tipVal:d => d[1] + "% complete"});
+    table($("#tbGap"), ["Region","Completeness"], gap.map(g => [g[0], g[1] + "%"]));
+
+    statusRows($("#health"), [
+      {icon:"●", color:col("--good"), label:"Uptime and availability", value:"99.82%"},
+      {icon:"●", color:col("--good"), label:"Task success rate", value:"91.3%"},
+      {icon:"●", color:col("--good"), label:"Sampled response accuracy (n=420)", value:"96.1%"},
+      {icon:"▲", color:col("--warn"), label:"Escalation to human", value:"6.4%"},
+      {icon:"●", color:col("--good"), label:"Unanswered-question rate", value:"3.1%"}
+    ]);
+
+    $("#anomalies").innerHTML = ANOMALIES.map(a => {
+      const c = a[0] === "critical" ? col("--critical") : a[0] === "warning" ? col("--warn") : col("--good");
+      const ic = a[0] === "critical" ? "✕" : a[0] === "warning" ? "▲" : "●";
+      return '<div class="srow"><span class="ico" style="color:' + c + '">' + ic + '</span>'
+        + '<span class="lbl" style="color:var(--ink)">' + a[1] + '</span>'
+        + '<span class="val" style="color:var(--muted);font-weight:400">' + a[2] + '</span></div>';
+    }).join("");
+
+    const comps = [["Task success",91],["Response speed",96],["Citizen rating",88],["Content completeness",78]];
+    $("#sqi").innerHTML =
+      '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">'
+      + '<span class="serif" style="font-size:40px">87</span>'
+      + '<span style="color:var(--ink2);font-size:12.5px">out of 100, up 4 points this month</span></div>'
+      + comps.map(c =>
+        '<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;'
+        + 'font-size:12px;color:var(--ink2);margin-bottom:4px"><span>' + c[0] + '</span><span>' + c[1] + '</span></div>'
+        + '<div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden">'
+        + '<div style="height:100%;width:' + c[1] + '%;background:var(--c1);border-radius:3px"></div></div></div>'
+      ).join("");
+
+    hbars($("#chRating"), RATING, {padL:70, color:col("--c1"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of rated conversations"});
+    table($("#tbRating"), ["Rating","Share"], RATING.map(r => [r[0], r[1] + "%"]));
+
+    hbars($("#chAge"), AGE, {padL:62, color:col("--c2"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of citizens reached"});
+    table($("#tbAge"), ["Age band","Share"], AGE.map(a => [a[0], a[1] + "%"]));
+    hbars($("#chGender"), GENDER, {padL:70, color:col("--c3"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of citizens reached"});
+    table($("#tbGender"), ["Gender","Share"], GENDER.map(g => [g[0], g[1] + "%"]));
+
+    statusRows($("#users"), [
+      {icon:"", color:col("--ink"), label:"Unique users", value:"41,240"},
+      {icon:"", color:col("--ink"), label:"Monthly active users", value:"28,710"},
+      {icon:"", color:col("--ink"), label:"Monthly paying active users", value:"1,284"},
+      {icon:"", color:col("--muted"), label:"Returning within 30 days", value:"37%"}
+    ]);
+    $("#users").insertAdjacentHTML("beforeend",
+      '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.6">'
+      + '“Paying” counts citizens who completed a chargeable state data request inside a conversation, '
+      + 'such as the 252 som Tunduk marriage-record check. The assistant itself is free to citizens.</div>');
+  }
+
+  // ---------------------------------------------------------------- ticker
+  const TICK_R = ["Bishkek","Chuy","Osh city","Jalal-Abad","Naryn","Batken","Talas","Ysyk-Kol","Osh oblast"];
+  const TICK_E = [
+    "pension eligibility checked through Tunduk",
+    "tax deduction application submitted to the State Tax Service",
+    "OSAGO policy status verified",
+    "education deduction calculated, 8,400 som refund",
+    "documents uploaded and read automatically",
+    "escalated to a live operator",
+    "property deduction application prepared",
+    "rated the service 5 stars",
+    "asked about pension documents",
+    "consent granted for a one-time Tunduk request"
+  ];
+  let tickN = 0;
+  function tickOnce(backdateMin){
+    const ul = $("#ticker");
+    if (!ul) return;
+    const now = new Date(Date.now() - (backdateMin || 0) * 60000);
+    const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    const li = document.createElement("li");
+    const r = TICK_R[(tickN * 7 + 3) % TICK_R.length];
+    const e = TICK_E[(tickN * 7 + 1) % TICK_E.length];
+    li.innerHTML = '<span class="t">' + hh + '</span><span class="r">' + r + '</span><span class="e">' + e + '</span>';
+    ul.insertBefore(li, ul.firstChild);
+    while (ul.children.length > 9) ul.removeChild(ul.lastChild);
+    tickN++;
+  }
+
+  // ---------------------------------------------------------------- filters
+  function initFilters(){
+    const rs = $("#fRegion"), as = $("#fAgency");
+    rs.innerHTML = '<option>All regions</option>' + REGIONS.map(r => "<option>" + r[0] + "</option>").join("");
+    as.innerHTML = '<option>All agencies</option>' + AGENCIES.map(a => "<option>" + a[0] + "</option>").join("");
+    [rs, as, $("#fRange")].forEach(el => el.addEventListener("change", () => {
+      $("#liveLbl").textContent = "Updating";
+      setTimeout(() => { drawAll(); $("#liveLbl").textContent = "Live"; }, 260);
+    }));
+    $("#tablesBtn").addEventListener("click", function(){
+      const on = document.body.classList.toggle("tables");
+      this.setAttribute("aria-pressed", String(on));
+      this.style.borderColor = on ? col("--accent") : col("--line");
+      this.style.color = on ? col("--accent") : col("--ink");
+    });
+  }
+
+  initFilters();
+  drawAll();
+  for (let i = 6; i >= 0; i--) tickOnce(i * 3 + 1);
+  // ~1 event every 7-11s, consistent with the ~3,150 inquiries/day the KPIs show
+  (function loop(){ setTimeout(function(){ tickOnce(); loop(); }, 7000 + Math.random() * 4000); })();
+  let rt;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 180); });
+})();
+</script>
+</body>
+</html>
