@@ -11,11 +11,11 @@
   :root{
     --bg:#101010; --panel:#151513; --ink:#EDEAE4; --ink2:#A9A49B; --muted:#6E6A63;
     --accent:#D96C3B; --line:#2A2925;
-    /* validated categorical (dark surface #101010, all-pairs PASS) */
+    /* categorical, validated on this dark surface for contrast and colour-vision deficiency */
     --c1:#d95926; --c2:#3987e5; --c3:#199e70;
-    /* status (fixed, never themed) */
+    /* status, reserved: never reused as a series colour */
     --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
-    /* sequential blue ramp, low=near surface -> high=luminous */
+    /* sequential blue ramp; on a dark ground low values sit near the surface */
     --s1:#0d366b; --s2:#184f95; --s3:#256abf; --s4:#3987e5; --s5:#6da7ec; --s6:#9ec5f4; --s7:#cde2fb;
   }
   *{margin:0; padding:0; box-sizing:border-box}
@@ -24,9 +24,7 @@
     -webkit-font-smoothing:antialiased; padding:0 0 60px;
   }
   .serif{font-family:Fraunces,Georgia,serif; font-weight:400; letter-spacing:-.01em}
-  a{color:var(--accent)}
 
-  /* ---- top bar ---- */
   .top{
     position:sticky; top:0; z-index:20; background:rgba(16,16,16,.94);
     backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
@@ -41,27 +39,38 @@
     background:#1b1b18; color:var(--ink); border:1px solid var(--line); border-radius:6px;
     padding:7px 11px; font-size:13px; font-family:inherit; cursor:pointer;
   }
-  select:focus, .btn:focus{outline:2px solid var(--accent); outline-offset:1px}
+  select:focus-visible, .btn:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
   .live{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink2);
         letter-spacing:.1em; text-transform:uppercase}
   .dot{width:7px; height:7px; border-radius:50%; background:var(--good); animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){ .dot{animation:none} .ticker li{animation:none} }
   .demo-badge{
     font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#101010;
     background:var(--warn); padding:4px 9px; border-radius:4px; font-weight:600;
   }
 
-  /* ---- layout ---- */
-  .wrap{padding:26px 28px; max-width:1680px; margin:0 auto}
+  .scope{
+    padding:14px 28px 0; max-width:1680px; margin:0 auto; display:flex; gap:10px;
+    align-items:baseline; flex-wrap:wrap;
+  }
+  .scope .txt{font-size:13px; color:var(--ink2)}
+  .scope b{color:var(--ink); font-weight:500}
+  .chip{
+    font-size:11.5px; border:1px solid var(--accent); color:var(--accent); border-radius:999px;
+    padding:3px 11px; cursor:pointer; background:none; font-family:inherit;
+  }
+  .chip:hover{background:rgba(217,108,59,.12)}
+
+  .wrap{padding:18px 28px; max-width:1680px; margin:0 auto}
   .grid{display:grid; gap:16px; margin-bottom:16px}
   .g5{grid-template-columns:repeat(5,1fr)}
-  .g4{grid-template-columns:repeat(4,1fr)}
   .g3{grid-template-columns:repeat(3,1fr)}
   .g2{grid-template-columns:repeat(2,1fr)}
   .g23{grid-template-columns:2fr 1fr}
   .g32{grid-template-columns:1fr 2fr}
-  @media (max-width:1250px){ .g5,.g4,.g3,.g2,.g23,.g32{grid-template-columns:repeat(2,1fr)} }
-  @media (max-width:760px){ .g5,.g4,.g3,.g2,.g23,.g32{grid-template-columns:1fr} }
+  @media (max-width:1250px){ .g5,.g3,.g2,.g23,.g32{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:760px){ .g5,.g3,.g2,.g23,.g32{grid-template-columns:1fr} }
 
   .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 18px 16px}
   .card h3{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2);
@@ -71,13 +80,12 @@
        margin:26px 0 12px; letter-spacing:.02em}
   .sec:first-of-type{margin-top:6px}
 
-  /* ---- stat tiles ---- */
-  .stat .n{font-family:Fraunces,Georgia,serif; font-size:34px; line-height:1.05; letter-spacing:-.02em}
+  .stat .n{font-family:Fraunces,Georgia,serif; font-size:34px; line-height:1.05; letter-spacing:-.02em;
+           font-variant-numeric:tabular-nums}
   .stat .d{margin-top:7px; font-size:12.5px; color:var(--ink2); line-height:1.45}
-  .stat .delta{margin-top:9px; font-size:11.5px; display:flex; align-items:center; gap:5px}
+  .stat .delta{margin-top:9px; font-size:11.5px}
   .up{color:var(--good)} .down{color:var(--critical)} .flat{color:var(--muted)}
 
-  /* ---- charts ---- */
   svg{display:block; overflow:visible}
   .axis{font-size:10.5px; fill:var(--muted)}
   .vlabel{font-size:11px; fill:var(--ink2)}
@@ -86,18 +94,19 @@
   .legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; font-size:11.5px; color:var(--ink2)}
   .legend i{width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:6px;
             vertical-align:-1px}
-  .bar{transition:opacity .15s} .bar:hover{opacity:.75; cursor:default}
-  .cell{transition:stroke .12s} .cell:hover{stroke:var(--ink); stroke-width:1.5; cursor:default}
+  .bar{transition:opacity .15s}
+  .bar.click{cursor:pointer}
+  .bar:hover{opacity:.75}
+  .cell{transition:stroke .12s}
+  .cell:hover{stroke:var(--ink); stroke-width:1.5}
 
-  /* tooltip */
   #tip{
     position:fixed; z-index:60; pointer-events:none; opacity:0; transition:opacity .12s;
     background:#000; border:1px solid var(--line); border-radius:6px; padding:8px 10px;
-    font-size:12px; color:var(--ink); box-shadow:0 8px 30px rgba(0,0,0,.6); max-width:260px;
+    font-size:12px; color:var(--ink); box-shadow:0 8px 30px rgba(0,0,0,.6); max-width:280px;
   }
   #tip b{color:var(--accent); font-weight:600}
 
-  /* status rows */
   .srow{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);
         font-size:13px}
   .srow:last-child{border-bottom:none}
@@ -105,24 +114,27 @@
   .srow .lbl{flex:1; color:var(--ink2)}
   .srow .val{font-variant-numeric:tabular-nums; font-weight:500}
 
-  /* ticker */
-  .ticker{height:238px; overflow:hidden; position:relative}
-  .ticker ul{list-style:none}
-  .ticker li{
-    display:flex; gap:10px; align-items:baseline; padding:8px 0; font-size:12.5px;
-    border-bottom:1px solid var(--line); animation:slidein .4s ease;
+  .insight{
+    margin-top:14px; padding:11px 13px; border-left:2px solid var(--accent);
+    background:rgba(217,108,59,.06); font-size:12.5px; color:var(--ink2); line-height:1.55;
   }
+  .insight b{color:var(--ink); font-weight:500}
+
+  .ticker{height:250px; overflow:hidden}
+  .ticker ul{list-style:none}
+  .ticker li{display:flex; gap:10px; align-items:baseline; padding:8px 0; font-size:12.5px;
+             border-bottom:1px solid var(--line); animation:slidein .4s ease}
   @keyframes slidein{from{opacity:0; transform:translateY(-6px)}to{opacity:1;transform:none}}
   .ticker .t{color:var(--muted); font-variant-numeric:tabular-nums; font-size:11.5px; min-width:52px}
-  .ticker .r{color:var(--accent); min-width:72px; font-size:11.5px}
+  .ticker .r{color:var(--accent); min-width:78px; font-size:11.5px}
   .ticker .e{color:var(--ink2); flex:1}
 
-  /* tables (a11y) */
   table{width:100%; border-collapse:collapse; font-size:12px; margin-top:12px}
   th,td{text-align:left; padding:6px 8px; border-bottom:1px solid var(--line)}
   th{color:var(--muted); font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase}
   td{color:var(--ink2); font-variant-numeric:tabular-nums}
   .tv{display:none} body.tables .tv{display:block}
+  .tv-wrap{overflow-x:auto}
 
   .foot{padding:22px 28px 0; color:var(--muted); font-size:11.5px; line-height:1.7; max-width:1680px;
         margin:0 auto; border-top:1px solid var(--line)}
@@ -144,126 +156,129 @@
   <div class="ctl"><label for="fAgency">Agency</label><select id="fAgency"></select></div>
   <div class="ctl"><label for="fRange">Range</label>
     <select id="fRange">
-      <option>Last 7 days</option><option selected>Last 30 days</option>
-      <option>Last 90 days</option><option>Year to date</option>
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
     </select>
   </div>
   <button class="btn" id="tablesBtn" aria-pressed="false">Data tables</button>
   <div class="live"><span class="dot"></span><span id="liveLbl">Live</span></div>
 </div>
 
+<div class="scope">
+  <span class="txt" id="scopeTxt"></span>
+  <button class="chip" id="resetChip" hidden>Clear filters ×</button>
+</div>
+
 <div class="wrap">
 
-  <!-- ============ 1. VOLUME & REACH ============ -->
   <div class="sec">1 · Volume and reach</div>
   <div class="grid g5" id="kpis"></div>
 
   <div class="grid g23">
     <div class="card">
       <h3>Inquiries by region</h3>
-      <div class="note">Citizen-facing conversations, current range. Hover a bar for detail.</div>
+      <div class="note">Click a region to filter the whole dashboard. Hover for detail.</div>
       <div id="chRegion"></div>
-      <div class="tv" id="tbRegion"></div>
+      <div class="tv tv-wrap" id="tbRegion"></div>
+      <div class="insight" id="insRegion"></div>
     </div>
     <div class="card">
       <h3>Popular topics</h3>
-      <div class="note">Share of all inquiries</div>
+      <div class="note" id="noteTopics">Share of inquiries in scope</div>
       <div id="chTopics"></div>
-      <div class="tv" id="tbTopics"></div>
+      <div class="tv tv-wrap" id="tbTopics"></div>
     </div>
   </div>
 
   <div class="grid g2">
     <div class="card">
       <h3>Trending topics</h3>
-      <div class="note">Fastest growing week over week. Bars show this week against last.</div>
+      <div class="note">Last 7 days against the 7 days before, computed from the data in scope.</div>
       <div class="legend">
         <span><i style="background:var(--c1)"></i>This week</span>
-        <span><i style="background:var(--c2)"></i>Last week</span>
+        <span><i style="background:var(--c2)"></i>Previous week</span>
       </div>
       <div id="chTrend"></div>
-      <div class="tv" id="tbTrend"></div>
+      <div class="tv tv-wrap" id="tbTrend"></div>
     </div>
     <div class="card">
       <h3>Volume by agency</h3>
-      <div class="note">Each agency sees only its own rows in production. This view is the ministry-wide roll-up.</div>
+      <div class="note">Click an agency to scope the dashboard to its services. In production each agency sees only its own rows.</div>
       <div id="chAgency"></div>
-      <div class="tv" id="tbAgency"></div>
+      <div class="tv tv-wrap" id="tbAgency"></div>
     </div>
   </div>
 
-  <!-- ============ 2. RESPONSE SPEED ============ -->
   <div class="sec">2 · Response speed</div>
   <div class="grid g3">
     <div class="card">
       <h3>AI response speed</h3>
       <div class="note">Seconds to first answer, by day</div>
       <div id="chAiSpeed"></div>
-      <div class="tv" id="tbAiSpeed"></div>
+      <div class="tv tv-wrap" id="tbAiSpeed"></div>
     </div>
     <div class="card">
       <h3>Official response speed</h3>
-      <div class="note">Hours to human reply on escalated cases, by day. Separate scale from the AI chart on purpose.</div>
+      <div class="note">Hours to a human reply on escalated cases. Separate scale from the AI chart on purpose.</div>
       <div id="chHumanSpeed"></div>
-      <div class="tv" id="tbHumanSpeed"></div>
+      <div class="tv tv-wrap" id="tbHumanSpeed"></div>
     </div>
     <div class="card">
       <h3>Escalation queue depth</h3>
-      <div class="note">Cases waiting for an operator right now</div>
+      <div class="note">Cases waiting for an operator, by day</div>
       <div id="chQueue"></div>
-      <div class="tv" id="tbQueue"></div>
+      <div class="tv tv-wrap" id="tbQueue"></div>
     </div>
   </div>
 
-  <!-- ============ 3. LIVE ============ -->
   <div class="sec">3 · Live activity</div>
   <div class="grid g32">
     <div class="card">
       <h3>Activity ticker</h3>
-      <div class="note">Anonymised events as they happen</div>
+      <div class="note" id="noteTicker">Anonymised events as they happen</div>
       <div class="ticker"><ul id="ticker"></ul></div>
     </div>
     <div class="card">
       <h3>Demand by hour and weekday</h3>
-      <div class="note">Darker means quieter, brighter means busier. Hover a cell for the exact count.</div>
+      <div class="note">Brighter means busier. Patterns differ by region: hover any cell.</div>
       <div id="chHeat"></div>
-      <div class="tv" id="tbHeat"></div>
+      <div class="tv tv-wrap" id="tbHeat"></div>
     </div>
   </div>
 
-  <!-- ============ 4. DATA COMPLETENESS ============ -->
   <div class="sec">4 · Data completeness</div>
   <div class="grid g3">
     <div class="card">
       <h3>Overall completeness</h3>
-      <div class="note">Share of answerable questions the knowledge base can currently ground</div>
+      <div class="note" id="noteDonut">Share of questions in scope the knowledge base can ground</div>
       <div id="chDonut"></div>
     </div>
     <div class="card">
       <h3>Missing data categories</h3>
-      <div class="note">Percentage of records missing, by category</div>
+      <div class="note">Percentage of records missing, in scope</div>
       <div id="chMissing"></div>
-      <div class="tv" id="tbMissing"></div>
+      <div class="tv tv-wrap" id="tbMissing"></div>
     </div>
     <div class="card">
       <h3>Regional gap ranking</h3>
-      <div class="note">Completeness by region, worst first. These are the content gaps to close next.</div>
+      <div class="note">Worst first. These are the content gaps to close next.</div>
       <div id="chGap"></div>
-      <div class="tv" id="tbGap"></div>
+      <div class="tv tv-wrap" id="tbGap"></div>
+      <div class="insight" id="insGap"></div>
     </div>
   </div>
 
-  <!-- ============ 5. RELIABILITY ============ -->
   <div class="sec">5 · Reliability and performance</div>
   <div class="grid g2">
     <div class="card">
       <h3>Service health</h3>
-      <div class="note">Rolling 30 days</div>
+      <div class="note" id="noteHealth">In scope, current range</div>
       <div id="health"></div>
     </div>
     <div class="card">
       <h3>Anomaly detector <span class="proposed">Proposed</span></h3>
-      <div class="note">Deviations from the four-week baseline, ranked by severity</div>
+      <div class="note">Last 7 days against the previous 28, computed per region and topic. Only deviations above the noise floor are listed.</div>
       <div id="anomalies"></div>
     </div>
   </div>
@@ -276,30 +291,29 @@
     </div>
     <div class="card">
       <h3>Citizen rating</h3>
-      <div class="note">Post-completion rating, current range</div>
+      <div class="note">Post-completion rating, in scope</div>
       <div id="chRating"></div>
-      <div class="tv" id="tbRating"></div>
+      <div class="tv tv-wrap" id="tbRating"></div>
     </div>
   </div>
 
-  <!-- ============ 6. DEMOGRAPHICS + USERS ============ -->
   <div class="sec">6 · Demographics and active users</div>
   <div class="grid g3">
     <div class="card">
       <h3>Age band</h3>
       <div class="note">Aggregated only. No individual profile is stored or displayed.</div>
       <div id="chAge"></div>
-      <div class="tv" id="tbAge"></div>
+      <div class="tv tv-wrap" id="tbAge"></div>
     </div>
     <div class="card">
       <h3>Gender</h3>
       <div class="note">Aggregated only. No individual profile is stored or displayed.</div>
       <div id="chGender"></div>
-      <div class="tv" id="tbGender"></div>
+      <div class="tv tv-wrap" id="tbGender"></div>
     </div>
     <div class="card">
       <h3>Active users</h3>
-      <div class="note">Unique citizens reached</div>
+      <div class="note">Unique citizens reached, in scope</div>
       <div id="users"></div>
     </div>
   </div>
@@ -307,9 +321,9 @@
 </div>
 
 <div class="foot">
-  <strong style="color:var(--ink2)">All figures on this page are simulated demo data</strong> for prototype review. They follow the metric list in the CortexAI monitoring dashboard specification and are shaped to be plausible for the Kyrgyz Republic, but no production traffic is represented.
-  <br>Demographics are aggregate-only by design: the platform never displays or exports an individual citizen profile. Agency views are scoped, so an agency sees only the rows belonging to its own services.
-  <br>Palette validated for dark-surface contrast and colour-vision deficiency separation. Every chart has a matching data table under the “Data tables” toggle.
+  <strong style="color:var(--ink2)">All figures on this page are simulated demo data</strong> for prototype review. They follow the metric list in the CortexAI monitoring dashboard specification and are generated from a seeded model shaped to be plausible for the Kyrgyz Republic, so regions genuinely differ from one another and every filter recomputes the page. No production traffic is represented.
+  <br>Demographics are aggregate-only by design: the platform never displays or exports an individual citizen profile. Agency views are scoped, so in production an agency sees only the rows belonging to its own services.
+  <br>Palette validated for dark-surface contrast and colour-vision deficiency. Every chart has a matching data table under the “Data tables” toggle.
 </div>
 
 <div id="tip" role="tooltip"></div>
@@ -318,53 +332,122 @@
 (function(){
   "use strict";
 
-  // ---------------------------------------------------------------- simulated data
+  // ================================================================= model
+  // Deterministic generator, so the page shows the same numbers on every load.
+  function rng(seed){
+    return function(){
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  // share of national volume, and digital maturity, which drives speed, completeness and topic mix
   const REGIONS = [
-    ["Bishkek",28400,92],["Chuy",15800,84],["Osh city",11200,88],["Jalal-Abad",12100,76],
-    ["Osh oblast",9600,77],["Ysyk-Kol",6400,72],["Batken",5200,66],["Naryn",3100,61],["Talas",2900,64]
+    { name:"Bishkek",     share:.300, digital:.95 },
+    { name:"Chuy",        share:.170, digital:.82 },
+    { name:"Osh city",    share:.120, digital:.86 },
+    { name:"Jalal-Abad",  share:.130, digital:.72 },
+    { name:"Osh oblast",  share:.100, digital:.70 },
+    { name:"Ysyk-Kol",    share:.070, digital:.74 },
+    { name:"Batken",      share:.055, digital:.64 },
+    { name:"Naryn",       share:.033, digital:.60 },
+    { name:"Talas",       share:.031, digital:.62 }
   ];
+  // urbanBias above zero means the topic skews to digitally mature, urban regions
   const TOPICS = [
-    ["Pension",22300],["Tax deductions",18900],["OSAGO",14200],["Passport and ID",11600],
-    ["Social benefits",9800],["Business registration",7100],["Utilities",5400],
-    ["Education",3600],["Healthcare",1800]
+    { name:"Pension",               agency:"Social Fund",                  base:.235, urbanBias:-.55 },
+    { name:"Tax deductions",        agency:"State Tax Service",            base:.200, urbanBias: .60 },
+    { name:"OSAGO",                 agency:"Financial Supervision Agency", base:.150, urbanBias: .35 },
+    { name:"Passport and ID",       agency:"Ministry of Internal Affairs", base:.122, urbanBias: .00 },
+    { name:"Social benefits",       agency:"Social Fund",                  base:.103, urbanBias:-.70 },
+    { name:"Business registration", agency:"State Tax Service",            base:.075, urbanBias: .80 },
+    { name:"Utilities",             agency:"Public Service Centres",       base:.057, urbanBias: .30 },
+    { name:"Education",             agency:"Public Service Centres",       base:.038, urbanBias:-.20 },
+    { name:"Healthcare",            agency:"Public Service Centres",       base:.019, urbanBias:-.35 }
   ];
-  const TREND = [
-    ["OSAGO",4820,3490],["Tax deductions",6310,5090],["Utilities",1840,1546],
-    ["Pension",7420,7000],["Passport and ID",3560,3670]
-  ];
-  const AGENCIES = [
-    ["Social Fund",24100],["State Tax Service",21300],["Ministry of Internal Affairs",15400],
-    ["Public Service Centres",18900],["Financial Supervision Agency",14000]
-  ];
-  const MISSING = [
-    ["Kyrgyz-language content",55],["Regional office hours",42],["Fee schedules",31],
-    ["Form templates",24],["Contact numbers",12]
-  ];
-  const AGE = [["18-24",12],["25-34",27],["35-44",24],["45-54",18],["55-64",12],["65+",7]];
-  const GENDER = [["Women",54],["Men",46]];
-  const RATING = [["5 stars",58],["4 stars",24],["3 stars",11],["2 stars",4],["1 star",3]];
-  const AI_SPEED = [2.6,2.4,2.5,2.3,2.2,2.4,2.7,2.5,2.3,2.2,2.1,2.4,2.6,2.3];
-  const HUMAN_SPEED = [5.1,4.6,4.9,4.2,3.8,4.4,6.2,5.4,4.1,3.9,4.0,4.3,5.8,4.2];
-  const QUEUE = [21,26,24,31,28,34,41,38,29,25,27,30,36,34];
-  const ANOMALIES = [
-    ["critical","OSAGO inquiries in Batken up 180% against the four-week baseline","Started 2 days ago"],
-    ["warning","Response time p90 in Naryn at 8.9s, 2.1x the national median","Since yesterday"],
-    ["warning","Unanswered-question rate for Kyrgyz-language queries at 14%","Persistent"],
-    ["good","Escalation rate down to 6.4% from 9.1% last month","Improving"]
+  const AGENCIES = [...new Set(TOPICS.map(t => t.agency))];
+  const DAYS = 90;                 // index 0 is the oldest day, DAYS-1 is today
+  const NATIONAL_PER_DAY = 3150;
+
+  const vol = [];                  // vol[day][region][topic]
+  (function build(){
+    const r = rng(20260728);
+    for (let d = 0; d < DAYS; d++){
+      const dow = (d + 3) % 7;
+      const weekend = dow >= 5 ? 0.42 : 1;
+      const growth = 1 + 0.0022 * d;
+      const dayRow = [];
+      for (let ri = 0; ri < REGIONS.length; ri++){
+        const R = REGIONS[ri], topicRow = [];
+        for (let ti = 0; ti < TOPICS.length; ti++){
+          const T = TOPICS[ti];
+          const affinity = 1 + T.urbanBias * (R.digital - 0.75) * 2.2;
+          let v = NATIONAL_PER_DAY * R.share * T.base * Math.max(.15, affinity)
+                  * weekend * growth * (0.86 + 0.28 * r());
+          if (R.name === "Batken" && T.name === "OSAGO" && d >= DAYS - 6) v *= 2.8;
+          if (T.name === "Tax deductions" && d >= DAYS - 9) v *= 1.35;
+          topicRow.push(Math.round(v));
+        }
+        dayRow.push(topicRow);
+      }
+      vol.push(dayRow);
+    }
+  })();
+
+  const REGION_META = REGIONS.map(R => ({
+    speed:        1.7 + (1 - R.digital) * 4.2,
+    completeness: Math.round(46 + R.digital * 48),
+    escalation:   3.2 + (1 - R.digital) * 14,
+    success:      84 + R.digital * 11,
+    humanHours:   2.6 + (1 - R.digital) * 7.5,
+    rating:       3.9 + R.digital * 1.0,
+    olderSkew:    1 - R.digital
+  }));
+
+  const MISSING_CATS = [
+    { name:"Kyrgyz-language content", ruralWeight:1.55, base:38 },
+    { name:"Regional office hours",   ruralWeight:1.70, base:26 },
+    { name:"Fee schedules",           ruralWeight:1.15, base:26 },
+    { name:"Form templates",          ruralWeight:1.05, base:22 },
+    { name:"Contact numbers",         ruralWeight:1.35, base:8  }
   ];
 
+  const state = { region:"All regions", agency:"All agencies", days:30 };
+  const regionIdx = () => REGIONS.findIndex(r => r.name === state.region);
+  const topicIn = ti => state.agency === "All agencies" || TOPICS[ti].agency === state.agency;
+  const dayFrom = () => DAYS - state.days;
+
+  function sumRange(from, to, ri){
+    let total = 0;
+    for (let d = from; d < to; d++)
+      for (let r = 0; r < REGIONS.length; r++){
+        if (ri >= 0 && r !== ri) continue;
+        for (let t = 0; t < TOPICS.length; t++) if (topicIn(t)) total += vol[d][r][t];
+      }
+    return total;
+  }
+
+  function scopedMeta(key){
+    const ri = regionIdx();
+    if (ri >= 0) return REGION_META[ri][key];
+    let num = 0, den = 0;
+    REGIONS.forEach((R, i) => { num += REGION_META[i][key] * R.share; den += R.share; });
+    return num / den;
+  }
+
   const $ = s => document.querySelector(s);
-  const fmt = n => n.toLocaleString("en-US");
+  const fmt = n => Math.round(n).toLocaleString("en-US");
   const S = getComputedStyle(document.documentElement);
   const col = n => S.getPropertyValue(n).trim();
   const SEQ = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7"].map(col);
 
-  // ---------------------------------------------------------------- tooltip
+  // ================================================================= chart helpers
   const tip = $("#tip");
   function bindTip(el, html){
     el.addEventListener("mousemove", e => {
-      tip.innerHTML = html;
-      tip.style.opacity = 1;
+      tip.innerHTML = html; tip.style.opacity = 1;
       const r = tip.getBoundingClientRect();
       let x = e.clientX + 14, y = e.clientY - 10;
       if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
@@ -373,266 +456,492 @@
     });
     el.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
   }
-
   const svgEl = (tag, attrs) => {
     const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
     return e;
   };
-
   function table(host, headers, rows){
-    const t = document.createElement("table");
-    t.innerHTML = "<thead><tr>" + headers.map(h => "<th>" + h + "</th>").join("") + "</tr></thead>"
-      + "<tbody>" + rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("") + "</tr>").join("") + "</tbody>";
-    host.innerHTML = ""; host.appendChild(t);
+    host.innerHTML = "<table><thead><tr>" + headers.map(h => "<th>" + h + "</th>").join("")
+      + "</tr></thead><tbody>" + rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("")
+      + "</tr>").join("") + "</tbody></table>";
   }
 
-  // ---------------------------------------------------------------- horizontal bars
-  function hbars(host, data, opts){
-    opts = opts || {};
-    const W = host.clientWidth || 460, rowH = opts.rowH || 30, padL = opts.padL || 132;
-    const H = data.length * rowH + 8;
-    const max = Math.max.apply(null, data.map(d => d[1]));
-    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
-                              preserveAspectRatio:"none", role:"img"});
+  function hbars(host, data, o){
+    o = o || {};
+    const W = host.clientWidth || 460, rowH = o.rowH || 30, padL = o.padL || 132;
+    const H = Math.max(1, data.length) * rowH + 8;
+    const max = Math.max(1, ...data.map(d => d[1]));
+    const svg = svgEl("svg", { width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                               preserveAspectRatio:"none", role:"img" });
     data.forEach((d, i) => {
-      const y = i * rowH + 4, bw = Math.max(2, (d[1] / max) * (W - padL - 62));
-      const lab = svgEl("text", {x:0, y:y + 13, class:"vlabel"});
+      const y = i * rowH + 4, bw = Math.max(2, (d[1] / max) * (W - padL - 66));
+      const lab = svgEl("text", { x:0, y:y + 13, class:"vlabel" });
       lab.textContent = d[0]; svg.appendChild(lab);
-      const bar = svgEl("rect", {x:padL, y:y + 2, width:bw, height:13, rx:3,
-                                 fill:opts.color || col("--c1"), class:"bar"});
+      const dim = o.dimUnless && d[0] !== o.dimUnless;
+      const bar = svgEl("rect", { x:padL, y:y + 2, width:bw, height:13, rx:3,
+                                  fill:o.color || col("--c1"), opacity: dim ? .32 : 1,
+                                  class:"bar" + (o.onClick ? " click" : "") });
       svg.appendChild(bar);
-      const v = svgEl("text", {x:padL + bw + 8, y:y + 13, class:"dlabel"});
-      v.textContent = opts.fmtVal ? opts.fmtVal(d[1]) : fmt(d[1]);
+      const v = svgEl("text", { x:padL + bw + 8, y:y + 13, class:"dlabel", opacity: dim ? .5 : 1 });
+      v.textContent = o.fmtVal ? o.fmtVal(d[1]) : fmt(d[1]);
       svg.appendChild(v);
-      bindTip(bar, "<b>" + d[0] + "</b><br>" + (opts.tipVal ? opts.tipVal(d) : fmt(d[1]) + " inquiries"));
+      bindTip(bar, "<b>" + d[0] + "</b><br>" + (o.tipVal ? o.tipVal(d) : fmt(d[1]) + " inquiries"));
+      if (o.onClick) bar.addEventListener("click", () => o.onClick(d[0]));
     });
     host.innerHTML = ""; host.appendChild(svg);
   }
 
-  // ---------------------------------------------------------------- grouped bars (2 series)
   function gbars(host, data){
-    const W = host.clientWidth || 460, rowH = 42, padL = 132;
-    const H = data.length * rowH + 8;
-    const max = Math.max.apply(null, data.map(d => Math.max(d[1], d[2])));
-    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
-                              preserveAspectRatio:"none", role:"img"});
+    const W = host.clientWidth || 460, rowH = 42, padL = 136;
+    const H = Math.max(1, data.length) * rowH + 8;
+    const max = Math.max(1, ...data.map(d => Math.max(d[1], d[2])));
+    const svg = svgEl("svg", { width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                               preserveAspectRatio:"none", role:"img" });
     data.forEach((d, i) => {
       const y = i * rowH + 6;
-      const lab = svgEl("text", {x:0, y:y + 15, class:"vlabel"});
+      const lab = svgEl("text", { x:0, y:y + 15, class:"vlabel" });
       lab.textContent = d[0]; svg.appendChild(lab);
-      [[d[1], col("--c1"), 0], [d[2], col("--c2"), 15]].forEach(([v, c, off]) => {
-        const bw = Math.max(2, (v / max) * (W - padL - 78));
-        const bar = svgEl("rect", {x:padL, y:y + off, width:bw, height:13, rx:3, fill:c, class:"bar"});
-        svg.appendChild(bar);
-        bindTip(bar, "<b>" + d[0] + "</b><br>" + fmt(v) + (off ? " last week" : " this week"));
-      });
-      const pct = ((d[1] - d[2]) / d[2]) * 100;
-      const t = svgEl("text", {x:W - 4, y:y + 18, class:"dlabel", "text-anchor":"end",
-                               fill:pct >= 0 ? col("--good") : col("--critical")});
+      [[d[1], col("--c1"), 0, "this week"], [d[2], col("--c2"), 15, "previous week"]]
+        .forEach(([v, c, off, what]) => {
+          const bw = Math.max(2, (v / max) * (W - padL - 82));
+          const bar = svgEl("rect", { x:padL, y:y + off, width:bw, height:13, rx:3, fill:c, class:"bar" });
+          svg.appendChild(bar);
+          bindTip(bar, "<b>" + d[0] + "</b><br>" + fmt(v) + " " + what);
+        });
+      const pct = d[2] ? ((d[1] - d[2]) / d[2]) * 100 : 0;
+      const t = svgEl("text", { x:W - 4, y:y + 18, class:"dlabel", "text-anchor":"end",
+                                fill: pct >= 0 ? col("--good") : col("--critical") });
       t.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%";
       svg.appendChild(t);
     });
     host.innerHTML = ""; host.appendChild(svg);
   }
 
-  // ---------------------------------------------------------------- line
-  function line(host, series, opts){
-    opts = opts || {};
-    const W = host.clientWidth || 300, H = 150, padL = 34, padB = 20, padT = 10;
-    const max = Math.max.apply(null, series) * 1.15, min = 0;
-    const x = i => padL + (i / (series.length - 1)) * (W - padL - 8);
-    const y = v => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
-    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
-                              preserveAspectRatio:"none", role:"img"});
-    [0, 0.5, 1].forEach(f => {
+  function line(host, series, o){
+    o = o || {};
+    const W = host.clientWidth || 300, H = 150, padL = 34, padB = 18, padT = 12;
+    const max = Math.max(...series) * 1.18 || 1;
+    const x = i => padL + (i / Math.max(1, series.length - 1)) * (W - padL - 10);
+    const y = v => padT + (1 - v / max) * (H - padT - padB);
+    const svg = svgEl("svg", { width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                               preserveAspectRatio:"none", role:"img" });
+    [0, .5, 1].forEach(f => {
       const yy = padT + f * (H - padT - padB);
-      svg.appendChild(svgEl("line", {x1:padL, x2:W - 8, y1:yy, y2:yy, class:"grid-line"}));
-      const t = svgEl("text", {x:0, y:yy + 3, class:"axis"});
+      svg.appendChild(svgEl("line", { x1:padL, x2:W - 10, y1:yy, y2:yy, class:"grid-line" }));
+      const t = svgEl("text", { x:0, y:yy + 3, class:"axis" });
       t.textContent = (max * (1 - f)).toFixed(1); svg.appendChild(t);
     });
     let d = "";
     series.forEach((v, i) => { d += (i ? " L" : "M") + x(i) + " " + y(v); });
-    svg.appendChild(svgEl("path", {d:d, fill:"none", stroke:opts.color || col("--c1"), "stroke-width":2,
-                                   "stroke-linejoin":"round", "stroke-linecap":"round"}));
+    svg.appendChild(svgEl("path", { d: d + " L" + x(series.length - 1) + " " + (H - padB)
+      + " L" + x(0) + " " + (H - padB) + " Z", fill:(o.color || col("--c1")), opacity:.10 }));
+    svg.appendChild(svgEl("path", { d:d, fill:"none", stroke:o.color || col("--c1"),
+      "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round" }));
     series.forEach((v, i) => {
-      const c = svgEl("circle", {cx:x(i), cy:y(v), r:i === series.length - 1 ? 4 : 3,
-                                 fill:opts.color || col("--c1"), stroke:col("--panel"), "stroke-width":2});
-      svg.appendChild(c);
-      const hit = svgEl("circle", {cx:x(i), cy:y(v), r:11, fill:"transparent"});
+      const last = i === series.length - 1;
+      if (last || series.length <= 32)
+        svg.appendChild(svgEl("circle", { cx:x(i), cy:y(v), r: last ? 4 : 2.5,
+          fill:o.color || col("--c1"), stroke:col("--panel"), "stroke-width": last ? 2 : 1 }));
+      const hit = svgEl("circle", { cx:x(i), cy:y(v), r:10, fill:"transparent" });
       svg.appendChild(hit);
-      bindTip(hit, "<b>Day " + (i + 1) + "</b><br>" + v + " " + (opts.unit || ""));
+      bindTip(hit, "<b>" + o.label(i) + "</b><br>" + v.toFixed(1) + " " + (o.unit || ""));
     });
-    const last = svgEl("text", {x:x(series.length - 1), y:y(series[series.length - 1]) - 11,
-                                class:"dlabel", "text-anchor":"end"});
-    last.textContent = series[series.length - 1] + (opts.unitShort || "");
-    svg.appendChild(last);
+    const lastT = svgEl("text", { x:x(series.length - 1), y:y(series[series.length - 1]) - 11,
+                                  class:"dlabel", "text-anchor":"end" });
+    lastT.textContent = series[series.length - 1].toFixed(1) + (o.unitShort || "");
+    svg.appendChild(lastT);
     host.innerHTML = ""; host.appendChild(svg);
   }
 
-  // ---------------------------------------------------------------- heatmap
-  function heat(host){
-    const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-    const W = host.clientWidth || 460, padL = 34, padT = 16;
-    const cw = (W - padL - 6) / 24, ch = 20, H = days.length * ch + padT + 16;
-    const svg = svgEl("svg", {width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
-                              preserveAspectRatio:"none", role:"img"});
-    for (let h = 0; h < 24; h += 3){
-      const t = svgEl("text", {x:padL + h * cw, y:10, class:"axis"});
-      t.textContent = h + ":00"; svg.appendChild(t);
-    }
-    days.forEach((dn, di) => {
-      const t = svgEl("text", {x:0, y:padT + di * ch + 14, class:"axis"});
-      t.textContent = dn; svg.appendChild(t);
-      for (let h = 0; h < 24; h++){
-        const weekend = di > 4;
-        let base = Math.exp(-Math.pow(h - 11, 2) / 26) + 0.85 * Math.exp(-Math.pow(h - 16, 2) / 18);
-        if (weekend) base *= 0.42;
-        if (h < 7) base *= 0.15;
-        const noise = ((di * 31 + h * 17) % 11) / 100;
-        const v = Math.min(1, base + noise);
-        const idx = Math.min(SEQ.length - 1, Math.floor(v * SEQ.length));
-        const cell = svgEl("rect", {x:padL + h * cw, y:padT + di * ch + 2, width:cw - 2, height:ch - 4,
-                                    rx:2, fill:SEQ[idx], class:"cell"});
-        svg.appendChild(cell);
-        bindTip(cell, "<b>" + dn + " " + h + ":00</b><br>" + Math.round(v * 640) + " inquiries");
-      }
-    });
-    host.innerHTML = ""; host.appendChild(svg);
-  }
-
-  // ---------------------------------------------------------------- donut
   function donut(host, pct){
     const size = 190, r = 66, cx = size / 2, cy = size / 2 + 4, C = 2 * Math.PI * r;
-    const svg = svgEl("svg", {width:"100%", height:size, viewBox:"0 0 " + size + " " + size, role:"img"});
-    svg.appendChild(svgEl("circle", {cx:cx, cy:cy, r:r, fill:"none", stroke:col("--line"), "stroke-width":15}));
-    svg.appendChild(svgEl("circle", {cx:cx, cy:cy, r:r, fill:"none", stroke:col("--c1"), "stroke-width":15,
+    const svg = svgEl("svg", { width:"100%", height:size, viewBox:"0 0 " + size + " " + size, role:"img" });
+    svg.appendChild(svgEl("circle", { cx, cy, r, fill:"none", stroke:col("--line"), "stroke-width":15 }));
+    svg.appendChild(svgEl("circle", { cx, cy, r, fill:"none", stroke:col("--c1"), "stroke-width":15,
       "stroke-dasharray":(C * pct / 100) + " " + C, "stroke-linecap":"round",
-      transform:"rotate(-90 " + cx + " " + cy + ")"}));
-    const n = svgEl("text", {x:cx, y:cy + 4, "text-anchor":"middle",
-                             style:"font-family:Fraunces,Georgia,serif;font-size:32px;fill:" + col("--ink")});
+      transform:"rotate(-90 " + cx + " " + cy + ")" }));
+    const n = svgEl("text", { x:cx, y:cy + 4, "text-anchor":"middle",
+      style:"font-family:Fraunces,Georgia,serif;font-size:32px;fill:" + col("--ink") });
     n.textContent = pct + "%"; svg.appendChild(n);
-    const l = svgEl("text", {x:cx, y:cy + 24, "text-anchor":"middle", class:"axis"});
+    const l = svgEl("text", { x:cx, y:cy + 24, "text-anchor":"middle", class:"axis" });
     l.textContent = "grounded"; svg.appendChild(l);
     host.innerHTML = ""; host.appendChild(svg);
   }
 
-  // ---------------------------------------------------------------- status rows
-  function statusRows(host, rows){
-    host.innerHTML = rows.map(r =>
-      '<div class="srow"><span class="ico" style="color:' + r.color + '">' + r.icon + '</span>'
-      + '<span class="lbl">' + r.label + '</span><span class="val" style="color:' + r.color + '">'
-      + r.value + '</span></div>').join("");
+  // ================================================================= renderers
+  function renderScope(){
+    const parts = [];
+    parts.push(state.region === "All regions" ? "all nine regions" : "<b>" + state.region + "</b>");
+    if (state.agency !== "All agencies") parts.push("<b>" + state.agency + "</b>");
+    parts.push("last <b>" + state.days + " days</b>");
+    $("#scopeTxt").innerHTML = "Showing " + parts.join(" · ");
+    $("#resetChip").hidden = state.region === "All regions" && state.agency === "All agencies";
   }
 
-  // ---------------------------------------------------------------- render
-  function kpis(){
+  function renderKpis(){
+    const ri = regionIdx(), from = dayFrom();
+    const cur = sumRange(from, DAYS, ri);
+    const prev = sumRange(Math.max(0, from - state.days), from, ri) || 1;
+    const delta = ((cur - prev) / prev) * 100;
+    const speed = scopedMeta("speed"), esc = scopedMeta("escalation"), succ = scopedMeta("success");
     const items = [
-      ["94,700","Total inquiries","+12.4% vs previous 30 days","up"],
-      ["41,240","Unique citizens reached","+8.1%","up"],
-      ["91.3%","Task success rate","+2.2 pts","up"],
-      ["2.4s","Median AI response","-0.3s","up"],
-      ["6.4%","Escalated to a human","-2.7 pts","up"]
+      [fmt(cur), "Total inquiries",
+       (delta >= 0 ? "+" : "") + delta.toFixed(1) + "% vs previous " + state.days + " days",
+       delta >= 0 ? "up" : "down"],
+      [fmt(cur / 2.3), "Unique citizens reached", "about one in every 2.3 conversations", "flat"],
+      [succ.toFixed(1) + "%", "Task success rate", succ >= 90 ? "at or above target" : "below the 90% target",
+       succ >= 90 ? "up" : "down"],
+      [speed.toFixed(1) + "s", "Median AI response", speed <= 3 ? "within target" : "slower than target",
+       speed <= 3 ? "up" : "down"],
+      [esc.toFixed(1) + "%", "Escalated to a human", esc <= 8 ? "within target" : "above target",
+       esc <= 8 ? "up" : "down"]
     ];
     $("#kpis").innerHTML = items.map(i =>
       '<div class="card stat"><div class="n serif">' + i[0] + '</div><div class="d">' + i[1] + '</div>'
-      + '<div class="delta ' + i[3] + '">' + (i[3] === "up" ? "▲" : "▼") + " " + i[2] + '</div></div>').join("");
+      + '<div class="delta ' + i[3] + '">' + i[2] + '</div></div>').join("");
   }
 
-  function drawAll(){
-    kpis();
-    const byVol = REGIONS.slice().sort((a, b) => b[1] - a[1]);
-    hbars($("#chRegion"), byVol.map(r => [r[0], r[1]]));
-    table($("#tbRegion"), ["Region","Inquiries","Completeness"], byVol.map(r => [r[0], fmt(r[1]), r[2] + "%"]));
+  function regionTotals(){
+    const from = dayFrom();
+    return REGIONS.map((R, ri) => {
+      let v = 0;
+      for (let d = from; d < DAYS; d++)
+        for (let t = 0; t < TOPICS.length; t++) if (topicIn(t)) v += vol[d][ri][t];
+      return [R.name, v];
+    }).sort((a, b) => b[1] - a[1]);
+  }
 
-    const total = TOPICS.reduce((a, t) => a + t[1], 0);
-    hbars($("#chTopics"), TOPICS, {padL:124, fmtVal:v => ((v / total) * 100).toFixed(1) + "%",
-      tipVal:d => fmt(d[1]) + " inquiries (" + ((d[1] / total) * 100).toFixed(1) + "%)"});
-    table($("#tbTopics"), ["Topic","Inquiries","Share"],
-      TOPICS.map(t => [t[0], fmt(t[1]), ((t[1] / total) * 100).toFixed(1) + "%"]));
+  function topicTotals(){
+    const from = dayFrom(), ri = regionIdx();
+    return TOPICS.map((T, ti) => {
+      if (!topicIn(ti)) return null;
+      let v = 0;
+      for (let d = from; d < DAYS; d++)
+        for (let r = 0; r < REGIONS.length; r++){
+          if (ri >= 0 && r !== ri) continue;
+          v += vol[d][r][ti];
+        }
+      return [T.name, v];
+    }).filter(Boolean).sort((a, b) => b[1] - a[1]);
+  }
 
-    gbars($("#chTrend"), TREND);
-    table($("#tbTrend"), ["Topic","This week","Last week","Change"],
-      TREND.map(t => [t[0], fmt(t[1]), fmt(t[2]), (((t[1] - t[2]) / t[2]) * 100).toFixed(0) + "%"]));
+  function selectRegion(name){
+    state.region = state.region === name ? "All regions" : name;
+    $("#fRegion").value = state.region;
+    redraw();
+  }
 
-    hbars($("#chAgency"), AGENCIES, {padL:186, color:col("--c3")});
-    table($("#tbAgency"), ["Agency","Inquiries"], AGENCIES.map(a => [a[0], fmt(a[1])]));
+  function renderRegion(){
+    const data = regionTotals();
+    hbars($("#chRegion"), data, {
+      dimUnless: state.region === "All regions" ? null : state.region,
+      onClick: selectRegion
+    });
+    table($("#tbRegion"), ["Region","Inquiries","Completeness","Median AI response"],
+      data.map(d => {
+        const i = REGIONS.findIndex(r => r.name === d[0]);
+        return [d[0], fmt(d[1]), REGION_META[i].completeness + "%", REGION_META[i].speed.toFixed(1) + "s"];
+      }));
+    const total = data.reduce((a, d) => a + d[1], 0) || 1;
+    if (state.region === "All regions"){
+      const top = data[0], bottom = data[data.length - 1];
+      $("#insRegion").innerHTML = "<b>" + top[0] + "</b> carries "
+        + (top[1] / Math.max(1, bottom[1])).toFixed(0) + " times the volume of <b>" + bottom[0]
+        + "</b>, broadly in line with population. The number worth watching is usage per head: "
+        + "the gap narrows wherever content completeness is highest.";
+    } else {
+      const row = data.find(d => d[0] === state.region);
+      const i = REGIONS.findIndex(r => r.name === state.region);
+      $("#insRegion").innerHTML = "<b>" + state.region + "</b> is "
+        + ((row[1] / total) * 100).toFixed(1) + "% of inquiries in this range, with completeness at "
+        + REGION_META[i].completeness + "% and a median response of "
+        + REGION_META[i].speed.toFixed(1) + "s. Click the bar again to clear the filter.";
+    }
+  }
 
-    line($("#chAiSpeed"), AI_SPEED, {unit:"seconds", unitShort:"s"});
-    table($("#tbAiSpeed"), ["Day","Seconds"], AI_SPEED.map((v, i) => ["Day " + (i + 1), v]));
-    line($("#chHumanSpeed"), HUMAN_SPEED, {color:col("--c2"), unit:"hours", unitShort:"h"});
-    table($("#tbHumanSpeed"), ["Day","Hours"], HUMAN_SPEED.map((v, i) => ["Day " + (i + 1), v]));
-    line($("#chQueue"), QUEUE, {color:col("--c3"), unit:"cases waiting", unitShort:""});
-    table($("#tbQueue"), ["Day","Cases"], QUEUE.map((v, i) => ["Day " + (i + 1), v]));
+  function renderTopics(){
+    const data = topicTotals(), total = data.reduce((a, d) => a + d[1], 0) || 1;
+    hbars($("#chTopics"), data, { padL:124,
+      fmtVal: v => ((v / total) * 100).toFixed(1) + "%",
+      tipVal: d => fmt(d[1]) + " inquiries (" + ((d[1] / total) * 100).toFixed(1) + "%)" });
+    table($("#tbTopics"), ["Topic","Agency","Inquiries","Share"],
+      data.map(d => {
+        const T = TOPICS.find(t => t.name === d[0]);
+        return [d[0], T.agency, fmt(d[1]), ((d[1] / total) * 100).toFixed(1) + "%"];
+      }));
+    $("#noteTopics").textContent = state.region === "All regions"
+      ? "Share of inquiries in scope"
+      : "Share of inquiries in " + state.region + ", which differs from the national mix";
+  }
 
-    heat($("#chHeat"));
+  function renderTrend(){
+    const ri = regionIdx();
+    const rows = TOPICS.map((T, ti) => {
+      if (!topicIn(ti)) return null;
+      let cur = 0, prev = 0;
+      for (let d = DAYS - 7; d < DAYS; d++)
+        for (let r = 0; r < REGIONS.length; r++){ if (ri >= 0 && r !== ri) continue; cur += vol[d][r][ti]; }
+      for (let d = DAYS - 14; d < DAYS - 7; d++)
+        for (let r = 0; r < REGIONS.length; r++){ if (ri >= 0 && r !== ri) continue; prev += vol[d][r][ti]; }
+      return [T.name, cur, prev];
+    }).filter(Boolean)
+      .sort((a, b) => ((b[1] - b[2]) / (b[2] || 1)) - ((a[1] - a[2]) / (a[2] || 1)))
+      .slice(0, 5);
+    gbars($("#chTrend"), rows);
+    table($("#tbTrend"), ["Topic","This week","Previous week","Change"],
+      rows.map(r => [r[0], fmt(r[1]), fmt(r[2]), (((r[1] - r[2]) / (r[2] || 1)) * 100).toFixed(0) + "%"]));
+  }
+
+  function renderAgency(){
+    const from = dayFrom(), ri = regionIdx();
+    const data = AGENCIES.map(a => {
+      let v = 0;
+      TOPICS.forEach((T, ti) => {
+        if (T.agency !== a) return;
+        for (let d = from; d < DAYS; d++)
+          for (let r = 0; r < REGIONS.length; r++){ if (ri >= 0 && r !== ri) continue; v += vol[d][r][ti]; }
+      });
+      return [a, v];
+    }).sort((a, b) => b[1] - a[1]);
+    hbars($("#chAgency"), data, { padL:186, color:col("--c3"),
+      dimUnless: state.agency === "All agencies" ? null : state.agency,
+      onClick: name => { state.agency = state.agency === name ? "All agencies" : name;
+                         $("#fAgency").value = state.agency; redraw(); } });
+    table($("#tbAgency"), ["Agency","Inquiries"], data.map(d => [d[0], fmt(d[1])]));
+  }
+
+  const dayLabel = (i, n) => {
+    const back = n - 1 - i;
+    return back === 0 ? "Today" : back === 1 ? "Yesterday" : back + " days ago";
+  };
+
+  function renderSpeed(){
+    const n = Math.min(state.days, 30), from = DAYS - n, ri = regionIdx();
+    const base = scopedMeta("speed"), human = scopedMeta("humanHours"), esc = scopedMeta("escalation");
+    const r = rng(4242 + (ri + 2) * 17);
+    const ai = [], hu = [], qu = [];
+    for (let d = from; d < DAYS; d++){
+      const weekend = ((d + 3) % 7) >= 5;
+      let a = base * (0.9 + 0.2 * r());
+      if (state.region === "Naryn" && d >= DAYS - 5) a *= 1.9;   // planted degradation
+      ai.push(+a.toFixed(1));
+      hu.push(+(human * (weekend ? 1.5 : 1) * (0.85 + 0.3 * r())).toFixed(1));
+      let dayVol = 0;
+      for (let rr = 0; rr < REGIONS.length; rr++){
+        if (ri >= 0 && rr !== ri) continue;
+        for (let t = 0; t < TOPICS.length; t++) if (topicIn(t)) dayVol += vol[d][rr][t];
+      }
+      qu.push(Math.round(dayVol * esc / 100 * 0.09 * (0.8 + 0.4 * r())));
+    }
+    const lab = i => dayLabel(i, n);
+    line($("#chAiSpeed"), ai, { unit:"seconds", unitShort:"s", label:lab });
+    line($("#chHumanSpeed"), hu, { color:col("--c2"), unit:"hours", unitShort:"h", label:lab });
+    line($("#chQueue"), qu, { color:col("--c3"), unit:"cases waiting", unitShort:"", label:lab });
+    table($("#tbAiSpeed"), ["Day","Seconds"], ai.map((v, i) => [lab(i), v]));
+    table($("#tbHumanSpeed"), ["Day","Hours"], hu.map((v, i) => [lab(i), v]));
+    table($("#tbQueue"), ["Day","Cases"], qu.map((v, i) => [lab(i), v]));
+  }
+
+  function renderHeat(){
+    const host = $("#chHeat"), days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const ri = regionIdx();
+    const digital = ri >= 0 ? REGIONS[ri].digital : 0.8;
+    const dailyTotal = sumRange(DAYS - 7, DAYS, ri) / 7;
+    const W = host.clientWidth || 460, padL = 34, padT = 16;
+    const cw = (W - padL - 6) / 24, ch = 20, H = days.length * ch + padT + 16;
+    const svg = svgEl("svg", { width:"100%", height:H, viewBox:"0 0 " + W + " " + H,
+                               preserveAspectRatio:"none", role:"img" });
+    for (let h = 0; h < 24; h += 3){
+      const t = svgEl("text", { x:padL + h * cw, y:10, class:"axis" });
+      t.textContent = h + ":00"; svg.appendChild(t);
+    }
+    // less digitally mature regions peak earlier and use the service less in the evening
+    const peak1 = 11 - (1 - digital) * 1.6, peak2 = 16 + digital * 1.4;
+    const eveningWeight = 0.35 + digital * 0.85;
+    const rows = [];
+    days.forEach((dn, di) => {
+      const t = svgEl("text", { x:0, y:padT + di * ch + 14, class:"axis" });
+      t.textContent = dn; svg.appendChild(t);
+      const weekend = di > 4, raw = [];
+      for (let h = 0; h < 24; h++){
+        let base = Math.exp(-Math.pow(h - peak1, 2) / 26)
+                 + 0.85 * Math.exp(-Math.pow(h - peak2, 2) / 18) * eveningWeight;
+        if (weekend) base *= 0.42;
+        if (h < 7) base *= 0.12;
+        raw.push(base + ((di * 31 + h * 17) % 11) / 140);
+      }
+      rows.push(raw);
+    });
+    const flat = rows.flat(), maxV = Math.max(...flat);
+    const scale = dailyTotal / (flat.reduce((a, b) => a + b, 0) / 7);
+    rows.forEach((raw, di) => raw.forEach((v, h) => {
+      const idx = Math.min(SEQ.length - 1, Math.floor((v / maxV) * SEQ.length));
+      const cell = svgEl("rect", { x:padL + h * cw, y:padT + di * ch + 2,
+        width:Math.max(1, cw - 2), height:ch - 4, rx:2, fill:SEQ[idx], class:"cell" });
+      svg.appendChild(cell);
+      bindTip(cell, "<b>" + days[di] + " " + h + ":00</b><br>" + fmt(v * scale) + " inquiries");
+    }));
+    host.innerHTML = ""; host.appendChild(svg);
     $("#tbHeat").innerHTML = "<table><thead><tr><th>Note</th></tr></thead><tbody><tr><td>"
-      + "Peak demand falls on weekday mornings (10:00 to 12:00) and late afternoons (15:00 to 17:00). "
-      + "Weekend volume runs at roughly 42% of weekday volume.</td></tr></tbody></table>";
+      + "Peak demand in scope falls around " + Math.round(peak1) + ":00 and " + Math.round(peak2)
+      + ":00 on weekdays. Weekend volume runs at roughly 42% of weekday volume. Lower digital "
+      + "maturity shifts the peak earlier and thins out evening use.</td></tr></tbody></table>";
+  }
 
-    donut($("#chDonut"), 78);
-    hbars($("#chMissing"), MISSING, {padL:158, color:col("--warn"), fmtVal:v => v + "%",
-      tipVal:d => d[1] + "% of records missing"});
-    table($("#tbMissing"), ["Category","Missing"], MISSING.map(m => [m[0], m[1] + "%"]));
+  function renderCompleteness(){
+    const ri = regionIdx();
+    donut($("#chDonut"), Math.round(scopedMeta("completeness")));
+    $("#noteDonut").textContent = state.region === "All regions"
+      ? "Share of questions the knowledge base can ground, weighted by volume"
+      : "Share of questions the knowledge base can ground in " + state.region;
 
-    const gap = REGIONS.slice().sort((a, b) => a[2] - b[2]).map(r => [r[0], r[2]]);
-    hbars($("#chGap"), gap, {color:col("--c2"), fmtVal:v => v + "%", tipVal:d => d[1] + "% complete"});
+    const rural = ri >= 0 ? (1 - REGIONS[ri].digital) : 0.22;
+    const miss = MISSING_CATS.map(c => [c.name,
+        Math.min(92, Math.round(c.base * (1 + (c.ruralWeight - 1) * rural * 3.4)))])
+      .sort((a, b) => b[1] - a[1]);
+    hbars($("#chMissing"), miss, { padL:158, color:col("--warn"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of records missing" });
+    table($("#tbMissing"), ["Category","Missing"], miss.map(m => [m[0], m[1] + "%"]));
+
+    const gap = REGIONS.map((R, i) => [R.name, REGION_META[i].completeness])
+      .sort((a, b) => a[1] - b[1]);
+    hbars($("#chGap"), gap, { color:col("--c2"), fmtVal:v => v + "%",
+      dimUnless: state.region === "All regions" ? null : state.region,
+      tipVal:d => d[1] + "% complete", onClick: selectRegion });
     table($("#tbGap"), ["Region","Completeness"], gap.map(g => [g[0], g[1] + "%"]));
+    $("#insGap").innerHTML = "Closing <b>" + miss[0][0].toLowerCase() + "</b> in <b>" + gap[0][0]
+      + "</b> and <b>" + gap[1][0] + "</b> lifts the two weakest regions fastest. Completeness "
+      + "tracks quality closely: the regions at the bottom of this list are the same ones "
+      + "escalating most often to a human.";
+  }
 
-    statusRows($("#health"), [
-      {icon:"●", color:col("--good"), label:"Uptime and availability", value:"99.82%"},
-      {icon:"●", color:col("--good"), label:"Task success rate", value:"91.3%"},
-      {icon:"●", color:col("--good"), label:"Sampled response accuracy (n=420)", value:"96.1%"},
-      {icon:"▲", color:col("--warn"), label:"Escalation to human", value:"6.4%"},
-      {icon:"●", color:col("--good"), label:"Unanswered-question rate", value:"3.1%"}
-    ]);
-
-    $("#anomalies").innerHTML = ANOMALIES.map(a => {
-      const c = a[0] === "critical" ? col("--critical") : a[0] === "warning" ? col("--warn") : col("--good");
-      const ic = a[0] === "critical" ? "✕" : a[0] === "warning" ? "▲" : "●";
-      return '<div class="srow"><span class="ico" style="color:' + c + '">' + ic + '</span>'
-        + '<span class="lbl" style="color:var(--ink)">' + a[1] + '</span>'
-        + '<span class="val" style="color:var(--muted);font-weight:400">' + a[2] + '</span></div>';
+  function renderHealth(){
+    const succ = scopedMeta("success"), esc = scopedMeta("escalation"),
+          speed = scopedMeta("speed"), comp = scopedMeta("completeness");
+    const unanswered = Math.max(0.6, (100 - comp) * 0.14);
+    const rows = [
+      { label:"Uptime and availability", value:"99.82%", ok:true },
+      { label:"Task success rate", value:succ.toFixed(1) + "%", ok:succ >= 90 },
+      { label:"Sampled response accuracy", value:Math.min(99, succ + 4.8).toFixed(1) + "%", ok:true },
+      { label:"Escalation to a human", value:esc.toFixed(1) + "%", ok:esc <= 8 },
+      { label:"Unanswered-question rate", value:unanswered.toFixed(1) + "%", ok:unanswered <= 5 }
+    ];
+    $("#health").innerHTML = rows.map(r => {
+      const c = r.ok ? col("--good") : col("--warn");
+      return '<div class="srow"><span class="ico" style="color:' + c + '">' + (r.ok ? "●" : "▲")
+        + '</span><span class="lbl">' + r.label + '</span><span class="val" style="color:' + c
+        + '">' + r.value + '</span></div>';
     }).join("");
+    $("#noteHealth").textContent = state.region === "All regions"
+      ? "Weighted across all regions, current range" : state.region + ", current range";
 
-    const comps = [["Task success",91],["Response speed",96],["Citizen rating",88],["Content completeness",78]];
+    const comps = [
+      ["Task success", Math.round(succ)],
+      ["Response speed", Math.round(Math.max(0, 100 - (speed - 1.7) * 14))],
+      ["Citizen rating", Math.round(scopedMeta("rating") / 5 * 100)],
+      ["Content completeness", Math.round(comp)]
+    ];
+    const idx = Math.round(comps.reduce((a, c) => a + c[1], 0) / comps.length);
     $("#sqi").innerHTML =
       '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">'
-      + '<span class="serif" style="font-size:40px">87</span>'
-      + '<span style="color:var(--ink2);font-size:12.5px">out of 100, up 4 points this month</span></div>'
+      + '<span class="serif" style="font-size:40px">' + idx + '</span>'
+      + '<span style="color:var(--ink2);font-size:12.5px">out of 100 for '
+      + (state.region === "All regions" ? "the whole country" : state.region) + '</span></div>'
       + comps.map(c =>
         '<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;'
-        + 'font-size:12px;color:var(--ink2);margin-bottom:4px"><span>' + c[0] + '</span><span>' + c[1] + '</span></div>'
+        + 'font-size:12px;color:var(--ink2);margin-bottom:4px"><span>' + c[0] + '</span>'
+        + '<span>' + c[1] + '</span></div>'
         + '<div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden">'
-        + '<div style="height:100%;width:' + c[1] + '%;background:var(--c1);border-radius:3px"></div></div></div>'
-      ).join("");
-
-    hbars($("#chRating"), RATING, {padL:70, color:col("--c1"), fmtVal:v => v + "%",
-      tipVal:d => d[1] + "% of rated conversations"});
-    table($("#tbRating"), ["Rating","Share"], RATING.map(r => [r[0], r[1] + "%"]));
-
-    hbars($("#chAge"), AGE, {padL:62, color:col("--c2"), fmtVal:v => v + "%",
-      tipVal:d => d[1] + "% of citizens reached"});
-    table($("#tbAge"), ["Age band","Share"], AGE.map(a => [a[0], a[1] + "%"]));
-    hbars($("#chGender"), GENDER, {padL:70, color:col("--c3"), fmtVal:v => v + "%",
-      tipVal:d => d[1] + "% of citizens reached"});
-    table($("#tbGender"), ["Gender","Share"], GENDER.map(g => [g[0], g[1] + "%"]));
-
-    statusRows($("#users"), [
-      {icon:"", color:col("--ink"), label:"Unique users", value:"41,240"},
-      {icon:"", color:col("--ink"), label:"Monthly active users", value:"28,710"},
-      {icon:"", color:col("--ink"), label:"Monthly paying active users", value:"1,284"},
-      {icon:"", color:col("--muted"), label:"Returning within 30 days", value:"37%"}
-    ]);
-    $("#users").insertAdjacentHTML("beforeend",
-      '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.6">'
-      + '“Paying” counts citizens who completed a chargeable state data request inside a conversation, '
-      + 'such as the 252 som Tunduk marriage-record check. The assistant itself is free to citizens.</div>');
+        + '<div style="height:100%;width:' + Math.max(0, Math.min(100, c[1])) + '%;'
+        + 'background:var(--c1);border-radius:3px"></div></div></div>').join("");
   }
 
-  // ---------------------------------------------------------------- ticker
-  const TICK_R = ["Bishkek","Chuy","Osh city","Jalal-Abad","Naryn","Batken","Talas","Ysyk-Kol","Osh oblast"];
-  const TICK_E = [
+  function renderAnomalies(){
+    const found = [];
+    REGIONS.forEach((R, ri) => {
+      if (regionIdx() >= 0 && ri !== regionIdx()) return;
+      TOPICS.forEach((T, ti) => {
+        if (!topicIn(ti)) return;
+        let recent = 0, baseline = 0;
+        for (let d = DAYS - 7; d < DAYS; d++) recent += vol[d][ri][ti];
+        for (let d = DAYS - 35; d < DAYS - 7; d++) baseline += vol[d][ri][ti];
+        const baseWeek = baseline / 4;
+        if (baseWeek < 60) return;                       // below the noise floor
+        const ratio = recent / baseWeek;
+        if (ratio > 1.45 || ratio < 0.6)
+          found.push({ region:R.name, topic:T.name, ratio, pct:Math.round((ratio - 1) * 100), recent });
+      });
+    });
+    found.sort((a, b) => Math.abs(b.ratio - 1) - Math.abs(a.ratio - 1));
+    const items = found.slice(0, 4).map(f => {
+      const crit = Math.abs(f.ratio - 1) > 1.2;
+      const c = crit ? col("--critical") : col("--warn");
+      return '<div class="srow"><span class="ico" style="color:' + c + '">' + (crit ? "✕" : "▲")
+        + '</span><span class="lbl" style="color:var(--ink)"><b>' + f.topic + '</b> in ' + f.region
+        + ' ' + (f.pct >= 0 ? "up" : "down") + ' ' + Math.abs(f.pct)
+        + '% against the four-week baseline</span><span class="val" '
+        + 'style="color:var(--muted);font-weight:400">' + fmt(f.recent) + ' this week</span></div>';
+    });
+    REGIONS.forEach((R, i) => {
+      if (regionIdx() >= 0 && i !== regionIdx()) return;
+      if (REGION_META[i].speed > 3.4)
+        items.push('<div class="srow"><span class="ico" style="color:' + col("--warn")
+          + '">▲</span><span class="lbl" style="color:var(--ink)">Median response in <b>' + R.name
+          + '</b> is ' + REGION_META[i].speed.toFixed(1) + 's, '
+          + (REGION_META[i].speed / 2.2).toFixed(1) + ' times the fastest region</span>'
+          + '<span class="val" style="color:var(--muted);font-weight:400">content gap</span></div>');
+    });
+    $("#anomalies").innerHTML = items.length ? items.slice(0, 5).join("")
+      : '<div class="srow"><span class="ico" style="color:' + col("--good")
+        + '">●</span><span class="lbl">Nothing unusual in this scope. Every topic is within 45% '
+        + 'of its four-week baseline.</span></div>';
+  }
+
+  function renderPeople(){
+    const ri = regionIdx(), cur = sumRange(dayFrom(), DAYS, ri);
+    const older = ri >= 0 ? REGION_META[ri].olderSkew : 0.22;
+    const bands = [
+      ["18-24", 13 - older * 4], ["25-34", 29 - older * 9], ["35-44", 24 - older * 2],
+      ["45-54", 17 + older * 4], ["55-64", 11 + older * 6], ["65+", 6 + older * 5]
+    ];
+    const bt = bands.reduce((a, b) => a + b[1], 0);
+    const age = bands.map(b => [b[0], Math.round(b[1] / bt * 100)]);
+    hbars($("#chAge"), age, { padL:62, color:col("--c2"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of citizens reached" });
+    table($("#tbAge"), ["Age band","Share"], age.map(a => [a[0], a[1] + "%"]));
+
+    const women = Math.round(52 + older * 6);
+    const gender = [["Women", women], ["Men", 100 - women]];
+    hbars($("#chGender"), gender, { padL:70, color:col("--c3"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of citizens reached" });
+    table($("#tbGender"), ["Gender","Share"], gender.map(g => [g[0], g[1] + "%"]));
+
+    const rating = scopedMeta("rating");
+    const five = Math.round((rating - 3) * 42), four = Math.round((5 - rating) * 34 + 12);
+    const rest = Math.max(0, 100 - five - four);
+    const three = Math.round(rest * .55), two = Math.round(rest * .27);
+    const rows = [["5 stars", five], ["4 stars", four], ["3 stars", three],
+                  ["2 stars", two], ["1 star", Math.max(0, rest - three - two)]];
+    hbars($("#chRating"), rows, { padL:70, color:col("--c1"), fmtVal:v => v + "%",
+      tipVal:d => d[1] + "% of rated conversations" });
+    table($("#tbRating"), ["Rating","Share"], rows.map(r => [r[0], r[1] + "%"]));
+
+    $("#users").innerHTML = [
+      ["Unique users", fmt(cur / 2.3)],
+      ["Monthly active users", fmt(cur / 2.3 * 0.7)],
+      ["Monthly paying active users", fmt(cur / 2.3 * 0.031)],
+      ["Returning within 30 days", (30 + (ri >= 0 ? REGIONS[ri].digital : .8) * 12).toFixed(0) + "%"]
+    ].map(r => '<div class="srow"><span class="lbl">' + r[0] + '</span><span class="val">'
+      + r[1] + '</span></div>').join("")
+      + '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.6">'
+      + '“Paying” counts citizens who completed a chargeable state data request inside a '
+      + 'conversation, such as the 252 som Tunduk marriage-record check. The assistant itself is '
+      + 'free to citizens.</div>';
+  }
+
+  // ================================================================= ticker
+  const EVENTS = [
     "pension eligibility checked through Tunduk",
     "tax deduction application submitted to the State Tax Service",
     "OSAGO policy status verified",
@@ -648,41 +957,52 @@
   function tickOnce(backdateMin){
     const ul = $("#ticker");
     if (!ul) return;
+    const pool = state.region === "All regions" ? REGIONS.map(r => r.name) : [state.region];
     const now = new Date(Date.now() - (backdateMin || 0) * 60000);
     const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
     const li = document.createElement("li");
-    const r = TICK_R[(tickN * 7 + 3) % TICK_R.length];
-    const e = TICK_E[(tickN * 7 + 1) % TICK_E.length];
-    li.innerHTML = '<span class="t">' + hh + '</span><span class="r">' + r + '</span><span class="e">' + e + '</span>';
+    li.innerHTML = '<span class="t">' + hh + '</span><span class="r">'
+      + pool[(tickN * 7 + 3) % pool.length] + '</span><span class="e">'
+      + EVENTS[(tickN * 7 + 1) % EVENTS.length] + '</span>';
     ul.insertBefore(li, ul.firstChild);
     while (ul.children.length > 9) ul.removeChild(ul.lastChild);
     tickN++;
   }
 
-  // ---------------------------------------------------------------- filters
-  function initFilters(){
+  // ================================================================= wiring
+  function redraw(){
+    renderScope(); renderKpis(); renderRegion(); renderTopics(); renderTrend(); renderAgency();
+    renderSpeed(); renderHeat(); renderCompleteness(); renderHealth(); renderAnomalies();
+    renderPeople();
+    $("#noteTicker").textContent = state.region === "All regions"
+      ? "Anonymised events as they happen" : "Anonymised events in " + state.region;
+  }
+
+  (function init(){
     const rs = $("#fRegion"), as = $("#fAgency");
-    rs.innerHTML = '<option>All regions</option>' + REGIONS.map(r => "<option>" + r[0] + "</option>").join("");
-    as.innerHTML = '<option>All agencies</option>' + AGENCIES.map(a => "<option>" + a[0] + "</option>").join("");
-    [rs, as, $("#fRange")].forEach(el => el.addEventListener("change", () => {
-      $("#liveLbl").textContent = "Updating";
-      setTimeout(() => { drawAll(); $("#liveLbl").textContent = "Live"; }, 260);
-    }));
+    rs.innerHTML = '<option>All regions</option>'
+      + REGIONS.map(r => "<option>" + r.name + "</option>").join("");
+    as.innerHTML = '<option>All agencies</option>'
+      + AGENCIES.map(a => "<option>" + a + "</option>").join("");
+    rs.addEventListener("change", () => { state.region = rs.value; redraw(); });
+    as.addEventListener("change", () => { state.agency = as.value; redraw(); });
+    $("#fRange").addEventListener("change", e => { state.days = +e.target.value; redraw(); });
+    $("#resetChip").addEventListener("click", () => {
+      state.region = "All regions"; state.agency = "All agencies";
+      rs.value = state.region; as.value = state.agency; redraw();
+    });
     $("#tablesBtn").addEventListener("click", function(){
       const on = document.body.classList.toggle("tables");
       this.setAttribute("aria-pressed", String(on));
       this.style.borderColor = on ? col("--accent") : col("--line");
       this.style.color = on ? col("--accent") : col("--ink");
     });
-  }
-
-  initFilters();
-  drawAll();
-  for (let i = 6; i >= 0; i--) tickOnce(i * 3 + 1);
-  // ~1 event every 7-11s, consistent with the ~3,150 inquiries/day the KPIs show
-  (function loop(){ setTimeout(function(){ tickOnce(); loop(); }, 7000 + Math.random() * 4000); })();
-  let rt;
-  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 180); });
+    redraw();
+    for (let i = 6; i >= 0; i--) tickOnce(i * 3 + 1);
+    (function loop(){ setTimeout(function(){ tickOnce(); loop(); }, 7000 + Math.random() * 4000); })();
+    let rt;
+    addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(redraw, 180); });
+  })();
 })();
 </script>
 </body>
